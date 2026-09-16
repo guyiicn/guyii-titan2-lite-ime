@@ -20,6 +20,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 - **Shift+Alt 标点层** —— 中文输入中直接混打英文标点，不切模式
 - **飞字** —— 在键帽表面滑动：上滑选中正上方的候选、横滑连续翻候选、下滑退格
 
+![飞字演示](docs/flick-typing.gif)
+
+*真机实录：打 `zhongwen` 出候选，在键帽表面横滑连续移动高亮，上滑选中「中国网」上屏 ——
+手指全程不离开键盘。完整录像（37 秒，另含四行符号页与 `http://` 整串上屏）：
+[docs/flick-typing.mp4](docs/flick-typing.mp4)*
+
 硬件实测结论、每个设计决策的依据、以及踩过的坑，都记在 **[DESIGN.md](DESIGN.md)**。
 
 ## 安装
@@ -175,7 +181,62 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 增删键盘会让它失败 —— **那是它在正常工作，更新基准值即可，别删断言**。
 然后**执行第 1 条**。
 
-## 5. 其它容易误判的地方
+## 5. 改包名
+
+**不是改一个 `applicationId` 就完事的。** 这个项目的 Kotlin 包名与 JNI 符号名绑死，
+改漏任何一处，症状都是运行时 `UnsatisfiedLinkError` 或 `NoClassDefFoundError`，
+而不是编译报错 —— 编译期发现不了。
+
+必须同步改的地方：
+
+| 位置 | 形式 | 数量 |
+|---|---|---|
+| `app/build.gradle.kts` | `namespace` 与 `applicationId` | 2 |
+| Kotlin 源码目录与 `package` 声明 | `net/guyii/ime/…` | 全部 |
+| `app/src/main/jni/librime_jni/*.cc` | `Java_net_guyii_ime_…` **函数符号名** | 46 |
+| 同上 | `FindClass("net/guyii/ime/…")` **字符串** | 11 |
+| `AndroidManifest.xml` | `android:name=".."` 的全限定写法 | `TrimeApplication`、`MainLauncherAlias` |
+| `app/src/main/res/xml/method.xml` | `android:settingsActivity` | 1 |
+
+JNI 那两类最要命：函数符号名里包名的 `.` 要写成 `_`
+（`net.guyii.ime` → `Java_net_guyii_ime_`），而 `FindClass` 用的是斜杠形式
+（`net/guyii/ime/core/Rime`），内部类还要用 `$`（`Candidates$Bulk`）。两种写法不一致，
+批量替换时很容易只改到一种。
+
+改完的验证方式：**装到设备上真的打一次字**。`assembleDebug` 成功不说明任何问题，
+JNI 符号对不上要到运行时调用那一刻才暴露。
+
+> `applicationId` 与 `namespace` 可以不同：前者是安装后的身份（换了它就是另一个应用，
+> 不会覆盖安装），后者决定 `R` 类和 JNI 符号。debug 变体靠 `applicationIdSuffix = ".debug"`
+> 与正式版并存，改包名时别把这个逻辑弄丢。
+
+## 6. 改图标
+
+启动器图标是 **adaptive icon**，由前景 + 背景色两层组成：
+
+```
+res/mipmap-anydpi-v26/ic_app_icon.xml        ← 组合定义（API 26+）
+  ├── background → @color/ic_app_icon_background
+  └── foreground → @drawable/ic_app_icon_foreground   ← 矢量，真正的图形在这里
+res/mipmap-{m,h,xh,xxh,xxx}dpi/ic_app_icon.png        ← API 25 及以下的位图回退
+res/mipmap-*/ic_app_icon_round.png                    ← 圆形变体
+res/drawable/ic_trime_status.xml                      ← 通知栏/状态栏小图标（单色）
+```
+
+要换图形，**改 `drawable/ic_app_icon_foreground.xml` 这一个矢量文件**即可覆盖
+API 26 以上的所有设备；那几套 PNG 是老系统的回退，不改也能跑，但不改就会新旧不一致。
+
+注意事项：
+
+- adaptive icon 的前景会被系统裁切成圆形/方形/水滴等各种形状，**安全区只有中心 66%**。
+  图形画到边上会被切掉
+- `monochrome` 层（主题图标）复用了同一个前景。如果前景是多色的，主题图标模式下会变成
+  一团实心色块 —— 单色字形（比如本项目用的「顧」字）刚好没这个问题
+- 状态栏图标 `ic_trime_status.xml` 必须是**纯单色**且只用 alpha 通道，
+  系统会整体染色，带颜色的图会变成一个实心方块
+- 换完在 API 26+ 和 25 两档都看一眼，两条路径用的是不同资源
+
+## 7. 其它容易误判的地方
 
 - **没有文本框聚焦时（`inputType == TYPE_NULL`）按键必须透传**。
   `forwardKeyEvent()` 原本无条件 `return true` 吞掉所有键，导致用单个字母做快捷键的
@@ -188,7 +249,7 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 - **界面文案统一简体**。但 `Henkan: {toggle: simplification, states: [漢字, 汉字]}`
   **必须保持原样** —— 那是繁简切换开关，两个状态值故意一繁一简
 
-## 6. 验证手段
+## 8. 验证手段
 
 - `./gradlew :app:testDebugUnitTest` —— 主题解析、触摸板手势判定等纯逻辑
   （手势阈值用的是真机采集的 19 条轨迹）
