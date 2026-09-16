@@ -1,0 +1,49 @@
+/*
+ * SPDX-FileCopyrightText: 2015 - 2025 Rime community
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+package net.guyii.ime.ime.clipboard
+
+import android.content.Context
+import net.guyii.ime.R
+import net.guyii.ime.data.theme.Theme
+import net.guyii.ime.data.theme.ThemeScope
+import net.guyii.ime.ime.bar.ui.ToolButton
+import net.guyii.ime.ime.core.InputTabLayout
+import splitties.dimensions.dp
+import splitties.views.dsl.constraintlayout.centerVertically
+import splitties.views.dsl.constraintlayout.constraintLayout
+import splitties.views.dsl.constraintlayout.endOfParent
+import splitties.views.dsl.constraintlayout.lParams
+import splitties.views.dsl.constraintlayout.startOfParent
+import splitties.views.dsl.core.Ui
+import splitties.views.dsl.core.add
+import splitties.views.dsl.core.wrapContent
+
+class ClipboardTitleUi(override val ctx: Context, private val scope: ThemeScope) : Ui {
+    private val theme: Theme get() = scope.theme
+
+    val tabLayout = InputTabLayout(ctx)
+
+    val deleteAllButton = ToolButton(ctx, R.drawable.ic_baseline_delete_sweep_24, scope)
+
+    private val size = theme.generalStyle.run { candidateViewHeight + commentHeight }
+
+    override val root = constraintLayout {
+        add(
+            tabLayout,
+            lParams(wrapContent, dp(size)) {
+                startOfParent()
+                centerVertically()
+            },
+        )
+        add(
+            deleteAllButton,
+            lParams(dp(size), dp(size)) {
+                centerVertically()
+                endOfParent()
+            },
+        )
+    }
+}

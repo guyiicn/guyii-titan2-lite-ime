@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>guyii 输入法测试台</title>
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#f4f5f7; --card:#fff; --fg:#14161a; --dim:#6b7280; --line:#dfe2e8;
+  --accent:#0b72d6; --ok:#0a7c48; --warn:#a15c00; --bad:#c0392b;
+  --code:#f0f2f5;
+  --pad-t: env(safe-area-inset-top, 0px);
+  --pad-b: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1115; --card:#171a20; --fg:#e7e9ee; --dim:#9aa2b1; --line:#2a2f39;
+    --accent:#4da3ff; --ok:#3ecf8e; --warn:#e0a33a; --bad:#ff6b5e;
+    --code:#0b0d11;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Noto Sans CJK SC","Source Han Sans SC",
+       "PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+  padding: calc(var(--pad-t) + 12px) 14px calc(var(--pad-b) + 32px);
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:19px;margin:0 0 2px}
+.sub{color:var(--dim);font-size:13px;margin:0 0 16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+h2 .n{background:var(--accent);color:#fff;font-size:11px;font-weight:700;
+  width:19px;height:19px;border-radius:50%;display:grid;place-items:center;flex:none}
+.hint{color:var(--dim);font-size:12.5px;margin:0 0 12px}
+
+.field{margin-bottom:11px}
+.field:last-child{margin-bottom:0}
+.flabel{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-bottom:4px}
+.flabel b{font-size:13px;font-weight:600}
+.flabel code{font-size:11px;background:var(--code);border:1px solid var(--line);
+  padding:1px 5px;border-radius:4px;color:var(--dim)}
+.exp{font-size:11.5px;font-weight:600;margin-left:auto;white-space:nowrap}
+.exp.row{color:var(--ok)}
+.exp.num{color:var(--accent)}
+.exp.asc{color:var(--warn)}
+.exp.note{color:var(--bad)}
+input,textarea,.ce{
+  width:100%;background:var(--bg);color:var(--fg);
+  border:1px solid var(--line);border-radius:8px;padding:10px 11px;
+  font:inherit;font-size:16px; /* 16px 防止 Chrome 聚焦缩放 */
+}
+input:focus,textarea:focus,.ce:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+textarea{min-height:76px;resize:vertical}
+.ce{min-height:44px}
+
+#focusbar{position:sticky;top:var(--pad-t);z-index:5;margin:-14px -14px 12px;
+  padding:9px 14px;background:var(--card);border-bottom:1px solid var(--line);
+  border-radius:12px 12px 0 0;font-size:12.5px;color:var(--dim)}
+#focusbar b{color:var(--fg)}
+
+.log{background:var(--code);border:1px solid var(--line);border-radius:8px;
+  height:210px;overflow:auto;padding:8px 10px;
+  font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre-wrap;word-break:break-word}
+.log .kd{color:var(--accent)}
+.log .bi{color:var(--ok)}
+.log .cp{color:var(--warn)}
+.log .muted{color:var(--dim)}
+.log em{font-style:normal;background:var(--bg);padding:0 3px;border-radius:3px}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button{font:inherit;font-size:13px;padding:8px 13px;border-radius:8px;
+  border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+button:active{transform:translateY(1px)}
+label.chk{display:flex;gap:9px;align-items:flex-start;padding:7px 0;
+  border-bottom:1px solid var(--line);font-size:13.5px;cursor:pointer}
+label.chk:last-of-type{border-bottom:0}
+label.chk input{width:auto;flex:none;margin-top:2px;transform:scale(1.25)}
+label.chk span small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.tbl th,.tbl td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line)}
+.tbl th{color:var(--dim);font-weight:600}
+.tbl td code{font-size:11px}
+.scroll{overflow-x:auto}
+#report{width:100%;height:150px;font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.done{color:var(--ok);font-size:12px;margin-left:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>guyii 输入法测试台</h1>
+<p class="sub">Titan 2 Lite · 逐项验证键盘路由、标点层、功能行与飞字</p>
+
+<section>
+  <div id="focusbar">当前焦点：<b>无</b></div>
+  <h2><span class="n">1</span>键盘路由</h2>
+  <p class="hint">依次点每个框，看屏幕底部那一行变成什么。右侧是<b>预期</b>结果，不一致就是 bug。</p>
+  <div id="fields"></div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>按键日志</h2>
+  <p class="hint">上面任意框里打字，这里会记录实际收到的按键与提交的字符。<br>
+     验证 Shift+Alt 标点层、功能行方向键、复制粘贴，全看这里。</p>
+  <div class="log" id="log"><span class="muted">等待输入…</span></div>
+  <div class="bar">
+    <button onclick="clearLog()">清空</button>
+    <label class="chk" style="border:0;padding:0;align-items:center">
+      <input type="checkbox" id="verbose"><span style="font-size:12.5px">显示 keyup / input</span>
+    </label>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>预期对照表</h2>
+  <p class="hint">依据 <code>KeyboardWindow.onStartInput()</code> 的实际分支整理。</p>
+  <div class="scroll">
+  <table class="tbl">
+    <tr><th>键盘</th><th>长什么样</th></tr>
+    <tr><td><b style="color:var(--ok)">功能行</b><br><code>rime_ice</code></td>
+        <td>Esc Tab Ctrl ← → ↑ ↓ 复制 粘贴 ▸</td></tr>
+    <tr><td><b style="color:var(--accent)">数字行</b><br><code>guyii_num</code></td>
+        <td>1 2 3 4 5 6 7 8 9 0</td></tr>
+    <tr><td><b style="color:var(--warn)">英文行</b><br><code>guyii_ascii</code></td>
+        <td>@ . _ - + / : ⌫ ▸ 字母</td></tr>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>功能清单</h2>
+  <p class="hint">在下面的框里逐条试，勾选结果（自动保存在本机）。</p>
+  <textarea id="sandbox" placeholder="在这里随便打字测试…"></textarea>
+  <div id="checks"></div>
+</section>
+
+<section>
+  <h2><span class="n">5</span>生成报告</h2>
+  <p class="hint">测完点一下，把结果发回给我。</p>
+  <div class="bar">
+    <button class="primary" onclick="makeReport()">生成报告</button>
+    <button onclick="copyReport()">复制<span id="copied" class="done" hidden>已复制</span></button>
+  </div>
+  <textarea id="report" placeholder="点「生成报告」后出现在这里" spellcheck="false"></textarea>
+</section>
+
+</div>
+<script>
+// ---------- 1. 输入框 ----------
+// 预期值来自 KeyboardWindow.onStartInput()：
+//   NUMBER/PHONE/DATETIME -> guyii_num
+//   TEXT + EMAIL/PASSWORD/WEB_EMAIL/WEB_PASSWORD -> guyii_ascii
+//   其余 -> .default -> smartMatchKeyboard() -> rime_ice
+const FIELDS = [
+  ['text',     'text',     null,        '普通文本',     'row', '功能行'],
+  ['textarea', null,       null,        '多行文本',     'row', '功能行'],
+  ['search',   'search',   null,        '搜索框',       'row', '功能行'],
+  ['password', 'password', null,        '密码',         'asc', '英文行'],
+  ['email',    'email',    null,        '邮件地址',     'asc', '英文行'],
+  ['number',   'number',   null,        '数字',         'num', '数字行'],
+  ['tel',      'tel',      null,        '电话',         'num', '数字行'],
+  ['url',      'url',      null,        '网址',         'note','功能行 ⚠'],
+  ['im-num',   'text',     'numeric',   'inputmode 数字','num', '数字行'],
+  ['im-dec',   'text',     'decimal',   'inputmode 小数','num', '数字行'],
+  ['im-email', 'text',     'email',     'inputmode 邮件','asc', '英文行'],
+  ['im-tel',   'text',     'tel',       'inputmode 电话','num', '数字行'],
+  ['ce',       null,       null,        'contenteditable','row','功能行'],
+];
+const NOTE = {
+  'url':'Trime 没把 URI 变体算进英文行，所以这里应该是功能行 —— 如果你觉得网址该出英文行，告诉我，一行配置就能加',
+};
+const fw = document.getElementById('fields');
+for (const [id, type, im, label, cls, exp] of FIELDS){
+  const d = document.createElement('div'); d.className = 'field';
+  const l = document.createElement('div'); l.className = 'flabel';
+  const b = document.createElement('b'); b.textContent = label; l.appendChild(b);
+  const c = document.createElement('code');
+  c.textContent = id==='textarea' ? '<textarea>' : id==='ce' ? 'contenteditable'
+                : im ? `inputmode="${im}"` : `type="${type}"`;
+  l.appendChild(c);
+  const e = document.createElement('span'); e.className = 'exp '+cls; e.textContent = '→ '+exp;
+  l.appendChild(e); d.appendChild(l);
+
+  let f;
+  if (id==='textarea'){ f = document.createElement('textarea'); }
+  else if (id==='ce'){ f = document.createElement('div'); f.className='ce'; f.contentEditable='true'; }
+  else { f = document.createElement('input'); f.type = type; if (im) f.inputMode = im; }
+  f.id = 'f-'+id; f.dataset.label = label; f.dataset.exp = exp;
+  if (f.tagName!=='DIV') f.placeholder = '点这里';
+  d.appendChild(f);
+  if (NOTE[id]){
+    const n = document.createElement('p');
+    n.className='hint'; n.style.margin='5px 0 0'; n.style.fontSize='11.5px';
+    n.textContent = '注：'+NOTE[id]; d.appendChild(n);
+  }
+  fw.appendChild(d);
+}
+
+// ---------- 2. 焦点条 ----------
+const fb = document.getElementById('focusbar');
+document.addEventListener('focusin', e=>{
+  const t = e.target;
+  if (!t.dataset || !t.dataset.label) { if (t.id==='sandbox') fb.innerHTML='当前焦点：<b>测试区</b> → 预期 功能行'; return; }
+  fb.innerHTML = `当前焦点：<b>${t.dataset.label}</b> → 预期 <b>${t.dataset.exp}</b>`;
+});
+document.addEventListener('focusout', ()=>{ fb.innerHTML='当前焦点：<b>无</b>'; });
+
+// ---------- 3. 按键日志 ----------
+const logEl = document.getElementById('log');
+const verbose = document.getElementById('verbose');
+let lines = [], empty = true;
+const esc = s => String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function show(ch){
+  if (ch === null || ch === undefined) return '∅';
+  if (ch === ' ') return '␠';
+  if (ch === '') return '（空）';
+  return ch;
+}
+function push(cls, text){
+  if (empty){ logEl.innerHTML=''; empty=false; }
+  const t = new Date().toTimeString().slice(3,8);
+  lines.push(text);
+  if (lines.length > 400) lines.shift();
+  const div = document.createElement('div');
+  div.className = cls;
+  div.innerHTML = `<span class="muted">${t}</span> ${esc(text)}`;
+  logEl.appendChild(div);
+  while (logEl.childElementCount > 400) logEl.removeChild(logEl.firstChild);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function mods(e){
+  let m = (e.ctrlKey?'Ctrl+':'')+(e.altKey?'Alt+':'')+(e.shiftKey?'Shift+':'')+(e.metaKey?'Meta+':'');
+  return m;
+}
+document.addEventListener('keydown', e=>{
+  push('kd', `⌨ keydown  ${mods(e)}${show(e.key)}   code=${e.code||'-'} keyCode=${e.keyCode}${e.repeat?' (重复)':''}`);
+}, true);
+document.addEventListener('keyup', e=>{
+  if (verbose.checked) push('kd muted', `  keyup   ${mods(e)}${show(e.key)}`);
+}, true);
+document.addEventListener('beforeinput', e=>{
+  push('bi', `✎ 提交  “${show(e.data)}”   inputType=${e.inputType}`);
+}, true);
+document.addEventListener('input', e=>{
+  if (verbose.checked) push('bi muted', `  input   inputType=${e.inputType||'-'} data=${show(e.data)}`);
+}, true);
+for (const ev of ['compositionstart','compositionupdate','compositionend']){
+  document.addEventListener(ev, e=>{
+    push('cp', `拼 ${ev.replace('composition','')}  “${show(e.data)}”`);
+  }, true);
+}
+function clearLog(){ lines=[]; empty=true; logEl.innerHTML='<span class="muted">已清空。</span>'; }
+
+// ---------- 4. 清单 ----------
+const CHECKS = [
+  ['kb',    '底部出现的是<b>一行功能键</b>，不是整块 QWERTY 大键盘', 'Esc Tab Ctrl ← → ↑ ↓ 复制 粘贴 ▸'],
+  ['cn',    '实体键盘打 <b>nihao</b> 能出「你好」候选', '验证词库在 arm64 上可用'],
+  ['sel',   '候选能选中并上屏', ''],
+  ['tgl',   '<b>Shift+空格</b> 能切中/英文', 'ascii_mode'],
+  ['punct', '中文模式下 <b>Alt+N</b> 出「，」', '走 Rime punctuator'],
+  ['apunct','中文模式下 <b>Shift+Alt+N</b> 出「,」（英文逗号）', '这是 Shift+Alt 标点层，不切模式混打英文标点'],
+  ['apunct2','<b>Shift+Alt+M</b> 出「.」、<b>Shift+Alt+V</b> 出「?」', '同上，共 13 键'],
+  ['arrow', '功能行的 <b>← → ↑ ↓</b> 能移动光标', '硬件没有方向键，全靠这行'],
+  ['esc',   '功能行 <b>Esc</b> / <b>Tab</b> 有反应', ''],
+  ['ctrl',  '点功能行 <b>Ctrl</b> 后再按实体 <b>A</b>，能全选', '验证软键盘修饰键作用于物理按键'],
+  ['cv',    '功能行<b>复制 / 粘贴</b>可用', ''],
+  ['page',  '<b>▸</b> 能循环三页符号，长按回字母键盘', '第2页 = | $ ~ [ ] { }，第3页 ` \\ ; ^ & %'],
+  ['fly',   '打拼音时触摸板<b>上滑选词 / 右滑翻页 / 左滑退格</b>', '⚠ 需先关闭系统 设置→手势→键盘手势 的 Scroll/Cursor Assistant'],
+];
+const cw = document.getElementById('checks');
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem('guyii-ime-test')||'{}'); } catch(_){}
+for (const [k, html, sub] of CHECKS){
+  const l = document.createElement('label'); l.className='chk';
+  const i = document.createElement('input'); i.type='checkbox'; i.dataset.k=k;
+  i.checked = !!saved[k];
+  i.addEventListener('change', ()=>{
+    saved[k]=i.checked;
+    try{ localStorage.setItem('guyii-ime-test', JSON.stringify(saved)); }catch(_){}
+  });
+  const s = document.createElement('span'); s.innerHTML = html + (sub?`<small>${sub}</small>`:'');
+  l.appendChild(i); l.appendChild(s); cw.appendChild(l);
+}
+
+// ---------- 5. 报告 ----------
+function makeReport(){
+  const out = [];
+  out.push('# guyii 输入法真机测试报告');
+  out.push('时间: '+new Date().toLocaleString('zh-CN'));
+  out.push('UA: '+navigator.userAgent);
+  out.push('');
+  out.push('## 清单');
+  for (const [k, html, sub] of CHECKS){
+    const box = cw.querySelector(`input[data-k="${k}"]`);
+    const txt = html.replace(/<[^>]+>/g,'');
+    out.push((box.checked?'[x] ':'[ ] ')+txt);
+  }
+  out.push('');
+  out.push('## 按键日志（最后 60 条）');
+  out.push(lines.length ? lines.slice(-60).join('\n') : '(空)');
+  document.getElementById('report').value = out.join('\n');
+}
+function copyReport(){
+  const ta = document.getElementById('report');
+  if (!ta.value) makeReport();
+  ta.select(); ta.setSelectionRange(0, 999999);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(_){}
+  if (navigator.clipboard) navigator.clipboard.writeText(ta.value).catch(()=>{});
+  const tag = document.getElementById('copied');
+  tag.hidden = false; setTimeout(()=>{ tag.hidden = true; }, 1600);
+}
+</script>
+</body>
+</html>

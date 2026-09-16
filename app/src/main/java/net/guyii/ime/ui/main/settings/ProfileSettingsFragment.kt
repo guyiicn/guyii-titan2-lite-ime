@@ -1,0 +1,397 @@
+/*
+ * SPDX-FileCopyrightText: 2015 - 2025 Rime community
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+package net.guyii.ime.ui.main.settings
+
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.preference.ListPreference
+import androidx.preference.Preference
+import androidx.preference.SwitchPreferenceCompat
+import net.guyii.ime.R
+import net.guyii.ime.data.base.DataManager
+import net.guyii.ime.data.prefs.AppPrefs
+import net.guyii.ime.data.prefs.PreferenceDelegate
+import net.guyii.ime.data.sync.DataStorageMode
+import net.guyii.ime.data.sync.RimeDataSync
+import net.guyii.ime.data.sync.SafDisplayPath
+import net.guyii.ime.data.sync.UserDbMigration
+import net.guyii.ime.ui.common.PaddingPreferenceFragment
+import net.guyii.ime.ui.common.withLoadingDialog
+import net.guyii.ime.ui.main.MainViewModel
+import net.guyii.ime.util.ResourceUtils
+import net.guyii.ime.util.addCategory
+import net.guyii.ime.util.addPreference
+import net.guyii.ime.util.buildDocumentsProviderIntent
+import net.guyii.ime.util.customFormatTimeInDefault
+import net.guyii.ime.util.toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class ProfileSettingsFragment : PaddingPreferenceFragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+    private val prefs = AppPrefs.Companion.defaultInstance().profile
+    private val backgroundSyncEnable = prefs.periodicBackgroundSync
+    private val lastSyncTime by prefs.lastBackgroundSyncTime
+    private val lastSyncStatus by prefs.lastBackgroundSyncStatus
+
+    private var pendingPickerCancelToAppStorage = false
+    private var pendingResetDataPath = false
+
+    private val onBackgroundSyncEnable = PreferenceDelegate.OnChangeListener<Boolean> { _, v ->
+        editSyncIntervalPreference.isEnabled = v
+    }
+
+    private val onSyncIntervalChange =
+        PreferenceDelegate.OnChangeListener<Int> { _, _ ->
+            if (backgroundSyncEnable.getValue()) {
+                viewModel.restartBackgroundSyncWork.value = true
+            }
+        }
+
+    private val onDataPathChange = PreferenceDelegate.OnChangeListener<String> { _, _ ->
+        updateDataPathSummary()
+    }
+
+    private val onStorageModeChange =
+        PreferenceDelegate.OnChangeListener<DataStorageMode> { _, _ ->
+            updateStorageModeUi()
+        }
+
+    private val dataPathPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri == null) {
+                when {
+                    pendingResetDataPath -> promptResetDataPathCancelled()
+                    pendingPickerCancelToAppStorage -> fallbackToAppStorage()
+                }
+                return@registerForActivityResult
+            }
+            handleTreePicked(uri, pendingPickerCancelToAppStorage)
+        }
+
+    private lateinit var editSyncIntervalPreference: EditTextIntPreference
+    private lateinit var dataPathPreference: Preference
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        prefs.periodicBackgroundSync.registerOnChangeListener(onBackgroundSyncEnable)
+        prefs.periodicBackgroundSyncInterval.registerOnChangeListener(onSyncIntervalChange)
+        prefs.externalRimeTreeUri.registerOnChangeListener(onDataPathChange)
+        prefs.externalRimeDisplayName.registerOnChangeListener(onDataPathChange)
+        prefs.dataStorageMode.registerOnChangeListener(onStorageModeChange)
+    }
+
+    private fun dataPathSummary(): String {
+        val uri = prefs.externalRimeTreeUri.getValue()
+        if (uri.isEmpty()) return getString(R.string.data_path_not_selected)
+        return SafDisplayPath.fromTreeUri(Uri.parse(uri))
+            ?: prefs.externalRimeDisplayName.getValue().takeIf { it.isNotEmpty() }
+            ?: uri
+    }
+
+    private fun updateDataPathSummary() {
+        findPreference<Preference>(AppPrefs.Profile.EXTERNAL_RIME_TREE_URI)?.summary = dataPathSummary()
+    }
+
+    private fun updateStorageModeUi() {
+        val externalSync = RimeDataSync.usesExternalSync()
+        if (::dataPathPreference.isInitialized) {
+            dataPathPreference.isEnabled = externalSync
+        }
+        findPreference<ListPreference>(AppPrefs.Profile.DATA_STORAGE_MODE)?.value =
+            prefs.dataStorageMode.getValue().name
+    }
+
+    private fun launchDataPathPicker(cancelToAppStorage: Boolean) {
+        pendingPickerCancelToAppStorage = cancelToAppStorage
+        pendingResetDataPath = false
+        dataPathPicker.launch(null as Uri?)
+    }
+
+    private fun launchResetDataPathPicker() {
+        pendingPickerCancelToAppStorage = false
+        pendingResetDataPath = true
+        dataPathPicker.launch(null as Uri?)
+    }
+
+    private fun handleTreePicked(
+        uri: Uri,
+        onCancelToAppStorage: Boolean,
+    ) {
+        val ctx = requireContext()
+        lifecycleScope.launch {
+            withLoadingDialog(ctx) {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        RimeDataSync.persistTreeUri(ctx, uri)
+                        RimeDataSync.importToLocal(ctx).getOrThrow()
+                        viewModel.rime.runOnReady { deploy(skipImport = true) }
+                    }
+                }.onSuccess {
+                    updateDataPathSummary()
+                    ctx.toast(R.string.setup__data_path_imported)
+                }.onFailure {
+                    if (onCancelToAppStorage) {
+                        fallbackToAppStorage()
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            RimeDataSync.clearExternalTree(ctx)
+                        }
+                        updateDataPathSummary()
+                        ctx.toast(R.string.setup__data_path_import_failed)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun promptSelectAnotherDirectory() {
+        AlertDialog
+            .Builder(requireContext())
+            .setMessage(R.string.select_another_directory_to_sync)
+            .setPositiveButton(R.string.select_another_directory) { _, _ ->
+                RimeDataSync.clearExternalTree(requireContext())
+                updateDataPathSummary()
+                launchResetDataPathPicker()
+            }.setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun promptResetDataPathCancelled() {
+        AlertDialog
+            .Builder(requireContext())
+            .setMessage(R.string.reset_data_path_cancelled_message)
+            .setPositiveButton(R.string.reset_data_path_pick_again) { _, _ ->
+                launchResetDataPathPicker()
+            }.setNegativeButton(R.string.reset_data_path_use_app_storage) { _, _ ->
+                fallbackToAppStorage()
+            }.setOnCancelListener {
+                launchResetDataPathPicker()
+            }.show()
+    }
+
+    private fun promptExternalSyncFolderSelection() {
+        val ctx = requireContext()
+        AlertDialog
+            .Builder(ctx)
+            .setMessage(R.string.external_sync_select_folder_message)
+            .setPositiveButton(R.string.setup__select_data_path) { _, _ ->
+                launchDataPathPicker(cancelToAppStorage = true)
+            }.setNegativeButton(android.R.string.cancel) { _, _ ->
+                fallbackToAppStorage()
+            }.setOnCancelListener {
+                fallbackToAppStorage()
+            }.show()
+    }
+
+    private fun fallbackToAppStorage() {
+        RimeDataSync.clearExternalTree(requireContext())
+        UserDbMigration.onStorageModeChanged(
+            DataStorageMode.EXTERNAL_SYNC,
+            DataStorageMode.APP_STORAGE,
+        )
+        prefs.dataStorageMode.setValue(DataStorageMode.APP_STORAGE)
+        updateStorageModeUi()
+        updateDataPathSummary()
+        AlertDialog
+            .Builder(requireContext())
+            .setMessage(R.string.external_sync_fallback_app_storage)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    override fun onCreatePreferences(
+        savedInstanceState: Bundle?,
+        rootKey: String?,
+    ) {
+        val ctx = requireContext()
+        preferenceScreen = preferenceManager.createPreferenceScreen(ctx).apply {
+            addCategory(R.string.storage) {
+                isIconSpaceReserved = false
+                val storageModes = DataStorageMode.entries
+                addPreference(
+                    ListPreference(ctx).apply {
+                        key = AppPrefs.Profile.DATA_STORAGE_MODE
+                        isIconSpaceReserved = false
+                        setTitle(R.string.data_storage_mode)
+                        entries = storageModes.map { getString(it.stringRes) }.toTypedArray()
+                        entryValues = storageModes.map { it.name }.toTypedArray()
+                        value = prefs.dataStorageMode.getValue().name
+                        summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+                        setOnPreferenceChangeListener { _, newValue ->
+                            val oldMode = prefs.dataStorageMode.getValue()
+                            val mode =
+                                DataStorageMode.valueOf(newValue as String)
+                            UserDbMigration.onStorageModeChanged(oldMode, mode)
+                            prefs.dataStorageMode.setValue(mode)
+                            if (
+                                oldMode == DataStorageMode.APP_STORAGE &&
+                                mode == DataStorageMode.EXTERNAL_SYNC &&
+                                !RimeDataSync.hasExternalAccess()
+                            ) {
+                                promptExternalSyncFolderSelection()
+                            } else if (
+                                oldMode == DataStorageMode.EXTERNAL_SYNC &&
+                                mode == DataStorageMode.APP_STORAGE
+                            ) {
+                                RimeDataSync.clearExternalTree(ctx)
+                                updateDataPathSummary()
+                            }
+                            true
+                        }
+                    },
+                )
+                addPreference(
+                    Preference(requireContext()).apply {
+                        dataPathPreference = this
+                        key = AppPrefs.Profile.EXTERNAL_RIME_TREE_URI
+                        isIconSpaceReserved = false
+                        setTitle(R.string.user_data_dir)
+                        summary = dataPathSummary()
+                        setOnPreferenceClickListener {
+                            promptSelectAnotherDirectory()
+                            true
+                        }
+                    },
+                )
+            }
+            addCategory(R.string.synchronization) {
+                isIconSpaceReserved = false
+                addPreference(R.string.sync_user_data_immediately) {
+                    lifecycleScope.launch {
+                        withLoadingDialog(ctx) {
+                            runCatching {
+                                viewModel.rime.runOnReady { syncUserData() }
+                            }.onSuccess { success ->
+                                ctx.toast(
+                                    when {
+                                        !success -> R.string.sync_user_data_failure
+                                        RimeDataSync.usesExternalSync(ctx) ->
+                                            R.string.sync_user_data_success_external
+                                        else -> R.string.sync_user_data_success
+                                    },
+                                )
+                            }.onFailure {
+                                ctx.toast(R.string.sync_user_data_failure)
+                            }
+                        }
+                    }
+                }
+                addPreference(
+                    SwitchPreferenceCompat(ctx).apply {
+                        key = AppPrefs.Profile.PERIODIC_BACKGROUND_SYNC
+                        isIconSpaceReserved = false
+                        setTitle(R.string.periodic_background_sync)
+                        setDefaultValue(false)
+                        summaryProvider = Preference.SummaryProvider<SwitchPreferenceCompat> {
+                            if (backgroundSyncEnable.getValue()) {
+                                val lastTime: String
+                                val lastStatus: String
+                                if (lastSyncTime != 0L) {
+                                    lastTime = customFormatTimeInDefault("yyyy-MM-dd HH:mm", lastSyncTime)
+                                    lastStatus = getString(if (lastSyncStatus) R.string.success else R.string.failure)
+                                } else {
+                                    lastTime = "N/A"
+                                    lastStatus = "N/A"
+                                }
+                                getString(
+                                    R.string.periodic_background_sync_status,
+                                    lastTime,
+                                    lastStatus,
+                                )
+                            } else {
+                                ""
+                            }
+                        }
+                    },
+                )
+                addPreference(
+                    EditTextIntPreference(ctx).apply {
+                        editSyncIntervalPreference = this
+                        key = AppPrefs.Profile.PERIODIC_BACKGROUND_SYNC_INTERVAL
+                        isIconSpaceReserved = false
+                        setTitle(R.string.periodic_background_sync_interval)
+                        min = 15
+                        setDefaultValue(30)
+                        summaryProvider = EditTextIntPreference.SimpleSummaryProvider
+                        isEnabled = backgroundSyncEnable.getValue()
+                    },
+                )
+            }
+            addCategory(R.string.maintenance) {
+                isIconSpaceReserved = false
+                addPreference(
+                    title = getString(R.string.browse_app_data_dir),
+                    summary = DataManager.userDataDir.absolutePath,
+                ) {
+                    runCatching {
+                        ctx.startActivity(buildDocumentsProviderIntent())
+                    }.onFailure {
+                        ctx.toast(R.string.browse_app_data_dir_failed)
+                    }
+                }
+                addPreference(R.string.reset, R.string.reset_hint) {
+                    val items = ctx.assets.list("shared") ?: return@addPreference
+                    val checked = BooleanArray(items.size) { false }
+                    AlertDialog
+                        .Builder(ctx)
+                        .setTitle(R.string.reset)
+                        .setMultiChoiceItems(items, checked) { _, id, isChecked ->
+                            checked[id] = isChecked
+                        }.setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            lifecycleScope.launch {
+                                var res = true
+                                withLoadingDialog(ctx) {
+                                    withContext(Dispatchers.IO) {
+                                        res =
+                                            items
+                                                .filterIndexed { index, _ -> checked[index] }
+                                                .fold(true) { acc, asset ->
+                                                    val destPath =
+                                                        DataManager.sharedDataDir.resolve(asset).absolutePath
+                                                    ResourceUtils
+                                                        .copyFile("shared/$asset", destPath)
+                                                        .fold({ acc and true }, { acc and false })
+                                                }
+                                    }
+                                }
+                                ctx.toast((if (res) R.string.reset_success else R.string.reset_failure))
+                            }
+                        }.show()
+                }
+            }
+        }
+        updateStorageModeUi()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        prefs.periodicBackgroundSync.unregisterOnChangeListener(onBackgroundSyncEnable)
+        prefs.periodicBackgroundSyncInterval.unregisterOnChangeListener(onSyncIntervalChange)
+        prefs.externalRimeTreeUri.unregisterOnChangeListener(onDataPathChange)
+        prefs.externalRimeDisplayName.unregisterOnChangeListener(onDataPathChange)
+        prefs.dataStorageMode.unregisterOnChangeListener(onStorageModeChange)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateStorageModeUi()
+        val ctx = requireContext()
+        if (
+            RimeDataSync.usesExternalSync(ctx) &&
+            prefs.externalRimeTreeUri.getValue().isNotEmpty() &&
+            !RimeDataSync.hasExternalAccess(ctx)
+        ) {
+            ctx.toast(R.string.data_path_permission_revoked)
+        }
+    }
+}
