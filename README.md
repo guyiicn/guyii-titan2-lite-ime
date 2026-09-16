@@ -48,10 +48,15 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## 构建
 
 ```bash
-git clone --recursive <this repo>
-cd guyii-ime
+git clone https://github.com/guyiicn/guyii-titan2-lite-ime.git
+cd guyii-titan2-lite-ime
 ./gradlew :app:assembleRelease -PbuildABI=arm64-v8a
 ```
+
+**不需要 `--recursive`**：librime / OpenCC / snappy 等原生依赖的源码直接在仓库里
+（上游是子模块，本项目改为随仓库分发，克隆即可构建）。Boost 是唯一的例外 ——
+它有 661MB，由 `app/src/main/jni/cmake/Boost.cmake` 在首次构建时从 GitHub 发布页
+自动下载并校验 SHA256，所以**首次构建需要联网**。
 
 ### 前提
 
@@ -62,12 +67,6 @@ cd guyii-ime
 | NDK | 28.0.13004108 |
 | CMake | 3.31.6 |
 | Python | 3（OpenCC 生成词典文本需要） |
-
-子模块必须拉全，否则 JNI 编译不过：
-
-```bash
-git submodule update --init --recursive --filter=blob:none
-```
 
 ### 签名
 

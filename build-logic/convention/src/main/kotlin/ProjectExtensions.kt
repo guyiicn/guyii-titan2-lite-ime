@@ -16,6 +16,10 @@ fun Project.runCmd(
 ): String {
     val output = providers.exec {
         commandLine = cmd.split(" ")
+        // Without this the provider throws on a non-zero exit and `default` is never
+        // reached -- which made a missing git checkout fail the whole build instead of
+        // falling back, for values that are only ever shown on the About screen.
+        isIgnoreExitValue = true
     }
     return if (output.result.get().exitValue == 0) {
         output.standardOutput.asText.get().trim()

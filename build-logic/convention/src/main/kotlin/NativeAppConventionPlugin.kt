@@ -14,12 +14,18 @@ class NativeAppConventionPlugin : NativeBaseConventionPlugin() {
             runCmd(
                 "git -C app/src/main/jni/librime describe " +
                     "--tags --long --always --exclude=latest",
+                // The native sources are vendored rather than checked out as submodules,
+                // so there is no git metadata to describe. Falls back to the version the
+                // source itself declares (librime's CMakeLists `rime_version`).
+                default = "1.17.0",
             )
 
     private val Project.openccVersion: String
         get() =
             runCmd(
                 "git -C app/src/main/jni/OpenCC describe --tags --long --always",
+                // Same as above; OpenCC's CMakeLists declares 1.2.
+                default = "1.2.0",
             )
 
     override fun apply(target: Project) {
