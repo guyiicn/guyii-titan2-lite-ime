@@ -41,8 +41,14 @@ Fn 上报 keyCode `403`，但**不设置任何 metaState**，Fn+任意键 = 基�
 `X 0-1079`、`Y 0-748.8`，带 PRESSURE / TOUCH_MAJOR，约 60Hz。
 
 - 输入法经 `dispatchGenericMotionEvent` **能收到**
-- **前提：必须关闭系统的 Scroll / Cursor Assistant**（设置→手势→键盘手势）。
-  开启时系统吞掉手势、转成无方向信息的 `keyCode 404` 脉冲（实测 3 条 vs 关闭后 78 条）
+- **前提：必须开启系统的 Scroll assistant，并把本输入法设为 Sliding Mode 2**
+  （Settings → Keyboard gesture → Scroll assistant → 应用列表里找到本输入法）。
+  该设置是**按应用**配置的，这一点当初被忽略了 —— 早期以为"必须关闭助手"，
+  依据是 KeyProbe 在助手关闭时收到 78 条、开启时只有 3 条（`keyCode 404` 脉冲）。
+  那组对比没有区分按应用的模式，结论因此是错的：真正决定事件形态的是
+  **该应用被指派了哪个模式**，而非助手的总开关
+- 同一页里系统自带的 **Flick typing 开关与本项目无关，保持关闭** ——
+  它的说明写明「only supported by the built-in Kika keyboard」
 - 纵向滑动时 X 稳定在键宽内（实测 890→O 键、314→E 键），**足以定位到具体键**
 - 键宽换算：`X / 108` = 第一排键序（Q=0…P=9）；行高 `Y / 187`
 
@@ -388,8 +394,9 @@ CustomPinyinDictionary_Fcitx.dict      (29MB 二进制)
 - 预编译产物在 x86_64 生成，**arm64 未验**。Rime 的 .bin 为内存映射结构，
   两者同为小端 64 位理论通用；若不兼容 Rime 会自动重编（退化为慢，不会坏）
 - 候选行尚未与功能行整合（当前候选仍走 Trime 默认的候选条）
-- **飞字需手动关闭系统的 Scroll / Cursor Assistant**（设置→手势→键盘手势），
-  否则系统吞掉手势事件，输入法收不到
+- **飞字需要系统侧配合**：Settings → Keyboard gesture → Scroll assistant →
+  把本输入法设为 **Sliding Mode 2**。系统自带的 Flick typing 开关保持关闭（只对内置
+  Kika 键盘生效）
 - 以下均在 x86_64/redroid 与单元测试中验证，**arm64 真机尚未实测**：
   预编译产物兼容性、Shift+Alt 标点层、飞字、屏幕 Ctrl 作用于物理键
 - `TYPE_NULL` 透传的代价：若某个应用错误地把可编辑框报成 `TYPE_NULL`，

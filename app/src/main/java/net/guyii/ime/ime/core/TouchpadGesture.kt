@@ -17,8 +17,11 @@ import android.view.MotionEvent
  * started on. The first letter row spans the full width in ten keys, which is what
  * [Swipe.keyIndex] resolves for flick-to-select.
  *
- * The system's own Scroll/Cursor Assistant consumes most of these events when enabled,
- * leaving only a trickle; that setting has to be off for gestures to arrive at all.
+ * Whether these arrive at all is decided per app by the system's Scroll assistant
+ * (Settings -> Keyboard gesture): this input method has to be set to Sliding Mode 2
+ * there. The setting is per app, which is easy to miss -- an early measurement compared
+ * the assistant on against off and concluded it had to be off, when what actually
+ * mattered was the mode assigned to the app doing the measuring.
  */
 class TouchpadGesture(
     /** Names the delivery route in the diagnostic log, e.g. `IME` or `A11Y`. */

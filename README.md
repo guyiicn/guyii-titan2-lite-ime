@@ -32,6 +32,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 只提供 arm64-v8a。装完在系统设置里启用并选择即可，**不需要**任何额外授权。
 
+### 要用飞字，还得改一处系统设置
+
+**Settings → Keyboard gesture → Scroll assistant → 找到「guyii 的 Titan Lite2 输入法」
+→ 选 `Sliding Mode 2`**
+
+这一步不做，键帽表面的滑动到不了输入法，飞字完全没反应。该设置是**按应用**配置的，
+每个应用可以是 `Close` / `Slide and click` / `Sliding Mode 1` / `Sliding Mode 2` /
+`Mouse Mode…` 之一，只有 Mode 2 会把带完整坐标的触摸事件送过来。
+
+同一页里系统自带的 **Flick typing 开关请保持关闭** —— 它的说明写着
+「only supported by the built-in Kika keyboard」，只对出厂自带的输入法生效，
+与本项目无关，开着反而可能抢走手势。
+
 ## 构建
 
 ```bash
@@ -120,7 +133,7 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 
 ## 3. 飞字（触摸板手势）
 
-三件反直觉的事，每一件都是实测得来的：
+四件反直觉的事，每一件都是实测得来的：
 
 **① 事件不走 `InputMethodService.onGenericMotionEvent()`。**
 那是文档推荐的钩子，但在这台机器上**一次都不会触发**（20 次输入会话实测 0 条，
@@ -135,12 +148,21 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 顺带一提：`AccessibilityService` + `setMotionEventSources(SOURCE_TOUCHPAD)` 这条路
 也试过，服务确实连上了但**一条事件都收不到**，已删除。不用再试。
 
-**② 横纵阈值必须分开。**
+**② 事件能不能到，由系统按应用决定。**
+`Settings → Keyboard gesture → Scroll assistant` 里每个应用各有一个模式，
+本输入法必须是 **`Sliding Mode 2`**。
+
+这一点当初摸错过：早期结论是"必须关闭 Scroll/Cursor Assistant"，依据是 KeyProbe
+在助手关闭时收到 78 条事件、开启时只有 3 条（无方向信息的 `keyCode 404` 脉冲）。
+那组对比**没有区分按应用的模式**，所以结论是错的 —— 真正起作用的是那个应用被指派了
+哪个模式，不是助手的总开关。如果你发现事件收不到，先查这里，再查代码。
+
+**③ 横纵阈值必须分开。**
 键盘表面只有四行高，纵向行程天然远短于横向。共用一个阈值时，实测一次 111px 的上滑
 被 120 的门槛挡掉 —— 症状是"翻页好用、选词完全没反应"。现为
 `MIN_TRAVEL_H = 120` / `MIN_TRAVEL_V = 70`（点击抖动实测 0～29px）。
 
-**③ 移动候选高亮用 `Down`/`Up`，不是 `Left`/`Right`。**
+**④ 移动候选高亮用 `Down`/`Up`，不是 `Left`/`Right`。**
 真机逐键实测：左右键是在**编码里移光标**，上下键才是选候选。
 
 其它要点：
