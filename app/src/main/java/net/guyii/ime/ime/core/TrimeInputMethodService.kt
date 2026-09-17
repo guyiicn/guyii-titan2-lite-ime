@@ -294,10 +294,13 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                             // take the character and drop the modifiers -- Ctrl+C arrives as
                             // a bare `c`.
                             val eventTime = SystemClock.uptimeMillis()
+                            val meta = it.modifiers.metaState
                             if (it.modifiers.release) {
-                                sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState, HARDWARE_DEVICE_ID, 0)
+                                sendUpKeyEvent(eventTime, keyCode, meta, HARDWARE_DEVICE_ID, 0)
+                                sendModifierKeys(eventTime, meta, false, HARDWARE_DEVICE_ID, 0)
                             } else {
-                                sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState, HARDWARE_DEVICE_ID, 0)
+                                sendModifierKeys(eventTime, meta, true, HARDWARE_DEVICE_ID, 0)
+                                sendDownKeyEvent(eventTime, keyCode, meta, HARDWARE_DEVICE_ID, 0)
                             }
                         } else {
                             if (!it.modifiers.release && it.value.value > 0) {
@@ -750,39 +753,44 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         metaState: Int = meta(),
     ): Boolean {
         val eventTime = SystemClock.uptimeMillis()
-        if (metaState and KeyEvent.META_ALT_ON != 0) {
-            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_ALT_LEFT)
-        }
-        if (metaState and KeyEvent.META_CTRL_ON != 0) {
-            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_CTRL_LEFT)
-        }
-        if (metaState and KeyEvent.META_SHIFT_ON != 0) {
-            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT)
-        }
-        if (metaState and KeyEvent.META_META_ON != 0) {
-            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_META_LEFT)
-        }
-        if (metaState and KeyEvent.META_SYM_ON != 0) {
-            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_SYM)
-        }
+        sendModifierKeys(eventTime, metaState, press = true)
         sendDownKeyEvent(eventTime, keyEventCode, metaState)
         sendUpKeyEvent(eventTime, keyEventCode, metaState)
-        if (metaState and KeyEvent.META_SYM_ON != 0) {
-            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_SYM)
-        }
-        if (metaState and KeyEvent.META_META_ON != 0) {
-            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_META_LEFT)
-        }
-        if (metaState and KeyEvent.META_SHIFT_ON != 0) {
-            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT)
-        }
-        if (metaState and KeyEvent.META_CTRL_ON != 0) {
-            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_CTRL_LEFT)
-        }
-        if (metaState and KeyEvent.META_ALT_ON != 0) {
-            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_ALT_LEFT)
-        }
+        sendModifierKeys(eventTime, metaState, press = false)
         return true
+    }
+
+    /**
+     * Presses (or releases) the modifier keys named by [metaState], as real key events.
+     *
+     * Carrying the modifier only in a key's `metaState` is not enough: a terminal view asks
+     * whether the Ctrl *key is down*, and a synthesized `c` that merely claims
+     * `META_CTRL_ON` arrives as a bare `c`. Bracketing the key with an actual
+     * `KEYCODE_CTRL_LEFT` down/up is what makes `Ctrl+C` behave like the hardware one.
+     * Releases run in reverse order so the sequence nests.
+     */
+    private fun sendModifierKeys(
+        eventTime: Long,
+        metaState: Int,
+        press: Boolean,
+        deviceId: Int = KeyCharacterMap.VIRTUAL_KEYBOARD,
+        flags: Int = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
+    ) {
+        val modifiers = listOf(
+            KeyEvent.META_ALT_ON to KeyEvent.KEYCODE_ALT_LEFT,
+            KeyEvent.META_CTRL_ON to KeyEvent.KEYCODE_CTRL_LEFT,
+            KeyEvent.META_SHIFT_ON to KeyEvent.KEYCODE_SHIFT_LEFT,
+            KeyEvent.META_META_ON to KeyEvent.KEYCODE_META_LEFT,
+            KeyEvent.META_SYM_ON to KeyEvent.KEYCODE_SYM,
+        )
+        for ((mask, code) in if (press) modifiers else modifiers.asReversed()) {
+            if (metaState and mask == 0) continue
+            if (press) {
+                sendDownKeyEvent(eventTime, code, 0, deviceId, flags)
+            } else {
+                sendUpKeyEvent(eventTime, code, 0, deviceId, flags)
+            }
+        }
     }
 
     /**
