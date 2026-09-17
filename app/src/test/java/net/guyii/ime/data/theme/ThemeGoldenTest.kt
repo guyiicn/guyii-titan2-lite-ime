@@ -112,14 +112,14 @@ class ThemeGoldenTest :
 
                 Then("color schemes and preset keys are decoded") {
                     theme.colorSchemes.size shouldBe 37
-                    theme.presetKeys.size shouldBe 116
+                    theme.presetKeys.size shouldBe 118
                     val brightnessDown = theme.presetKeys.getValue("BRIGHTNESS_DOWN")
                     brightnessDown.label shouldBe "亮度-"
                     brightnessDown.send shouldBe "BRIGHTNESS_DOWN"
                 }
 
-                Then("all 22 plain keyboards are decoded with their keys") {
-                    theme.presetKeyboards.size shouldBe 22
+                Then("all 23 plain keyboards are decoded with their keys") {
+                    theme.presetKeyboards.size shouldBe 23
                     theme.presetKeyboards shouldContainKey "default"
                     theme.presetKeyboards shouldContainKey "qwerty0"
                     theme.presetKeyboards shouldContainKey "cangjie5"
@@ -132,6 +132,12 @@ class ThemeGoldenTest :
                     theme.presetKeyboards["guyii_sym1"]!!.keys.size shouldBe 35
                     theme.presetKeyboards shouldContainKey "guyii_num"
                     theme.presetKeyboards shouldContainKey "guyii_ascii"
+
+                    // The escape hatch for a broken hardware keyboard: a full soft
+                    // keyboard, locked so it survives a focus change.
+                    val full = theme.presetKeyboards.getValue("guyii_full")
+                    full.keys.size shouldBe 47
+                    full.lock shouldBe true
 
                     val default = theme.presetKeyboards.getValue("default")
                     default.name shouldBe "默认40键"

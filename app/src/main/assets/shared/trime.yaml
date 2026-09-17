@@ -890,6 +890,8 @@ preset_keys:
   Control_L: {label: Ctrl, send: Control_L}
   guyii_page_pc: {label: '▸', send: Eisu_toggle, select: rime_ice}
   guyii_page_sym1: {label: '▸', send: Eisu_toggle, select: guyii_sym1}
+  guyii_page_full: {label: '▸', send: Eisu_toggle, select: guyii_full}
+  guyii_back_row: {label: '功能行', send: Eisu_toggle, select: rime_ice}
   guyii_cn_en: {toggle: ascii_mode, send: SWITCH_CHARSET, states: [ 中, 英 ]}
   guyii_schema: {label: 方案, send: F4}
   guyii_http: {label: 'http://', commit: 'http://'}
@@ -1086,7 +1088,67 @@ preset_keyboards:
     - {click: guyii_https, width: 25}
     - {click: BackSpace, width: 16}
     - {click: Keyboard_letter, width: 16}
-    - {click: guyii_page_pc, width: 18}
+    - {click: guyii_page_full, width: 18}
+
+  guyii_full:
+    # 实体键盘万一损坏时的退路：一整块可用的软键盘。
+    # 布局取自 default，编辑功能都在长按上（a=全选 x=剪切 c=复制 v=粘贴
+    # h/j/k/l=方向键 s=行首 d=行尾），所以不需要在它上面再叠一条功能行。
+    # 与 default 的差别只有两处：多一个显式的「功能行」返回键，
+    # 以及 lock 为真——这是给键盘坏掉的人用的，必须活过焦点切换。
+    name: guyii完整键盘
+    lock: true
+    ascii_mode: 0
+    width: 10
+    height: 44
+    keys:
+      - {click: '1', long_click: '!'}
+      - {click: '2', long_click: '@'}
+      - {click: '3', long_click: '#'}
+      - {click: '4', long_click: '$'}
+      - {click: '5', long_click: '%'}
+      - {click: '6', long_click: '^'}
+      - {click: '7', long_click: '&'}
+      - {click: '8', long_click: '*'}
+      - {click: '9', long_click: '('}
+      - {click: '0', long_click: ')'}
+      - {click: 'q', long_click: '_'}
+      - {click: 'w', long_click: '-'}
+      - {click: 'e', long_click: '+'}
+      - {click: 'r', long_click: '='}
+      - {click: 't', long_click: '|'}
+      - {click: 'y', long_click: '\'}
+      - {click: 'u', long_click: '['}
+      - {click: 'i', long_click: ']'}
+      - {click: 'o', long_click: '{'}
+      - {click: 'p', long_click: '}'}
+      - {click: 'a', long_click: select_all}
+      - {click: 's', long_click: Home}
+      - {click: 'd', long_click: End}
+      - {click: 'f', long_click: Page_Up}
+      - {click: 'g', long_click: Page_Down}
+      - {click: 'h', long_click: Left}
+      - {click: 'j', long_click: Down}
+      - {click: 'k', long_click: Up}
+      - {click: 'l', long_click: Right}
+      - {click: ';', long_click: ':'}
+      - {click: 'z', long_click: '`'}
+      - {click: 'x', long_click: cut}
+      - {click: 'c', long_click: copy}
+      - {click: 'v', long_click: paste}
+      - {click: 'b', long_click: '~'}
+      - {click: 'n', long_click: Insert}
+      - {click: 'm', long_click: Delete}
+      - {click: ',', long_click: '<'}
+      - {click: '.', long_click: '>'}
+      - {click: '/', long_click: '?'}
+      - {click: Shift_L}
+      - {click: Keyboard_symbols, long_click: Keyboard_number}
+      - {click: Mode_switch, long_click: Menu}
+      - {click: space, width: 25}
+      - {click: guyii_back_row, width: 15}
+      - {click: BackSpace, width: 15}
+      - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
 
   default:
     name: 默认40键

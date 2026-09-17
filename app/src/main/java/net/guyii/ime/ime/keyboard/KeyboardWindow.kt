@@ -74,6 +74,9 @@ class KeyboardWindow(di: DI) :
     private lateinit var keyboardView: FrameLayout
 
     companion object : ResidentWindow.Key {
+        /** Defined in trime.yaml; the escape hatch for a broken hardware keyboard. */
+        const val FULL_KEYBOARD = "guyii_full"
+
         lateinit var currentKeyboard: Keyboard
 
         /** Null until a keyboard view has been created; the hardware key path runs earlier. */
@@ -90,6 +93,7 @@ class KeyboardWindow(di: DI) :
     private val presetKeyboardIds = theme.presetKeyboards.keys.toList()
     private var currentKeyboardId = ""
     private var lastKeyboardId = ""
+
     private var lastLockKeyboardId = ""
     private var tempAsciiMode: Boolean? = null
     private val cachedKeyboards = mutableMapOf<String, Pair<Keyboard, KeyboardView>>()
@@ -211,7 +215,13 @@ class KeyboardWindow(di: DI) :
         }
     }
 
+    /** Sticky: the user asked for a full soft keyboard and should keep getting it. */
+    private var fullKeyboardMode = false
+
+    private fun rimeSchemaKeyboard(): String = rime.run { statusCached }.schemaId
+
     private fun smartMatchKeyboard(): String {
+        if (fullKeyboardMode && presetKeyboardIds.contains(FULL_KEYBOARD)) return FULL_KEYBOARD
         // 主题的布局中包含方案id，直接采用
         val currentSchema = rime.run { statusCached }.schemaId
         if (presetKeyboardIds.contains(currentSchema)) {
@@ -263,6 +273,17 @@ class KeyboardWindow(di: DI) :
 
     fun switchKeyboard(to: String) {
         val target = evalKeyboard(to)
+        // Reaching the full keyboard is a deliberate act -- it exists for the day the
+        // hardware keyboard stops working -- so it has to survive a focus change.
+        // Everything else is re-matched on every focus (see onStartInput), which is what
+        // recovers from picking the wrong keyboard before rime has reported its schema;
+        // remembering *every* manual switch would bring that failure back, so only this
+        // one mode is sticky.
+        when (target) {
+            FULL_KEYBOARD -> fullKeyboardMode = true
+            rimeSchemaKeyboard() -> fullKeyboardMode = false
+            else -> Unit
+        }
         ContextCompat.getMainExecutor(service).execute {
             if (cachedKeyboards.containsKey(target)) {
                 if (target == currentKeyboardId) return@execute
