@@ -371,9 +371,13 @@ API 26 以上的所有设备；那几套 PNG 是老系统的回退，不改也�
 
 ## 7. 其它容易误判的地方
 
-- **没有文本框聚焦时（`inputType == TYPE_NULL`）按键必须透传**。
-  `forwardKeyEvent()` 原本无条件 `return true` 吞掉所有键，导致用单个字母做快捷键的
-  应用全部失效。现由 `passThroughToApp()` 放行
+- **判断「该不该透传」要看有没有编辑器持有焦点，不能看 `inputType == TYPE_NULL`**。
+  `TYPE_NULL` 盖住了两种完全不同的情况：终端聚焦了一个真的编辑器、只是想要原始按键；
+  而阅读界面**根本没有焦点**，系统这时递给输入法一个空的 `EditorInfo`。真机实测两者
+  `inputType` 都是 `0x0`，但 Termux 的 `fieldId=0x7f0800d1`、社交客户端阅读页
+  `fieldId=0`。所以用的是 `attribute.fieldId != 0`。
+  按 `TYPE_NULL` 一刀切透传的那版，会让终端变成一个**永远打不了中文**的地方 ——
+  键全穿透出去、Rime 一个都收不到，编码永远开不了头，条件就永远成立
 - **判断"正在输入"要用 `rime.statusCached.isComposing`，不要用 `composingText`**。
   后者只跟踪内联预编辑，而 `inline_preedit_mode` 默认 `DISABLE`，它**恒为空字符串** ——
   哪怕候选栏里正挂着一串候选词

@@ -217,8 +217,7 @@ redroid 实测日志（`Switched to keyboard:`）：
 改法：新增 `passThroughToApp()`，`TYPE_NULL` 且当前无编码时 `forwardKeyEvent()`
 直接 `return false`，交回 `super.onKeyDown()`，应用拿到原始按键。
 
-`TYPE_NULL` 也正是终端一类编辑器表示「请发原始按键而不是上屏文本」的方式，
-所以透传本来就是它们期望的行为。
+**这个判据后来被推翻了，见 §7b。**
 
 redroid 实测（桌面无文本框按 a/b，统计 Rime 收到的 KeyMessage）：
 
@@ -231,6 +230,42 @@ redroid 实测（桌面无文本框按 a/b，统计 Rime 收到的 KeyMessage）
 
 > 注意这个缺陷**中英文模式都有**，不是中文独有 —— 英文模式下 Rime 同样吃掉
 > keydown，只是它会把字母 `commitText` 上屏，所以在能打字的地方看起来正常。
+
+### ✅ 7b. 终端里打不了中文（已修，推翻了 §7 的判据）
+
+§7 用 `inputType == TYPE_NULL` 当透传判据，后果是 Termux 里**实体键盘永远打不出中文**：
+键全透传给应用，Rime 一个都收不到；收不到就不会进入 composing；`!isComposing` 于是
+恒成立，继续透传。死循环，第一个键就锁死了。屏幕键盘不受影响（它不走 `forwardKeyEvent`），
+所以这个坑藏得很深。
+
+真正的问题是 `TYPE_NULL` 盖住了两件事：
+
+| | `inputType` | `fieldId` | `mInputShown` |
+|---|---|---|---|
+| Termux 终端 | `0x0` | `0x7f0800d1` | true |
+| 社交客户端阅读页 | `0x0` | **`0`** | false |
+
+终端聚焦了一个真的编辑器，只是想要原始按键；阅读页**根本没有焦点**，系统递过来的是一个
+空的 `EditorInfo`。判据换成 `attribute.fieldId != 0` 就分开了：
+
+```kotlin
+private fun passThroughToApp(): Boolean = !hasFocusedField && !isComposing
+```
+
+有焦点时交给上游本来的机制：Rime 先过一遍，不要的由 `RimeMessage.KeyMessage` 合成成
+按键事件打回给应用（`sendDownKeyEvent`/`sendUpKeyEvent`，带 `metaState`）。**这套机制
+是通的** —— 曾怀疑它失效才加了 §7 的闸门，真机实测推翻了：
+
+| 场景 | 结果 |
+|---|---|
+| 英文模式 · 终端 · 字母 | 原样进终端 |
+| 中文模式 · 终端 · 字母 | 出候选 |
+| 中文模式 · 终端 · BackSpace | 删掉字符 |
+| 中文模式 · 文本框 · `Ctrl+A` | 全选 |
+| 中文模式 · 无焦点应用 · `b`/`j`/`k` | 回退、翻页正常 |
+
+教训：`TYPE_NULL` 不是「这个应用不要输入法」，只是「没有可供上屏的 inputType」。
+问「有没有东西在等着被输入」，答案在 `fieldId`，不在 `inputType`。
 
 ### ✅ 8. 符号页重做 / 中英指示 / 方案选单（完成）
 
@@ -414,5 +449,5 @@ CustomPinyinDictionary_Fcitx.dict      (29MB 二进制)
   Kika 键盘生效）
 - 以下均在 x86_64/redroid 与单元测试中验证，**arm64 真机尚未实测**：
   预编译产物兼容性、Shift+Alt 标点层、飞字、屏幕 Ctrl 作用于物理键
-- `TYPE_NULL` 透传的代价：若某个应用错误地把可编辑框报成 `TYPE_NULL`，
-  那里将无法输入中文（只能收到原始按键）。终端类应用属于预期行为，非缺陷
+- 中文模式下**不带修饰键的单字母快捷键**不工作（应用有输入焦点时）—— 那时 `j` 就是
+  拼音码。所有输入法皆如此，切到英即可。带 Ctrl/Alt 的组合键不受影响

@@ -553,7 +553,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         composingText = ""
         Timber.d("onStartInput: restarting=$restarting")
         val isNullType = attribute.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL
-        hasNoEditableField = isNullType
+        hasFocusedField = attribute.fieldId != 0
         postRimeJob {
             if (restarting) {
                 // when input restarts in the same editor, clear previous composition
@@ -859,26 +859,35 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     /**
-     * True while the focused editor reports `TYPE_NULL`, i.e. there is no editable
-     * field to compose into -- a list view, a launcher, a game, a terminal.
+     * True while an editor actually holds focus.
+     *
+     * `TYPE_NULL` alone cannot separate the two things it covers, and conflating them is
+     * what made this hard. A terminal focuses a real editor and asks for raw key events;
+     * a reading view focuses nothing at all, and the framework then hands the IME a blank
+     * EditorInfo. Measured on the device, both report `inputType=0x0`, but Termux reports
+     * `fieldId=0x7f0800d1` with the input view shown, while a social client's reading
+     * view reports `fieldId=0` with `mInputShown=false`.
      */
-    private var hasNoEditableField = true
+    private var hasFocusedField = false
 
     /**
      * Lets a hardware key reach the app untouched.
      *
-     * [forwardKeyEvent] otherwise claims every key that maps to a rime key value, so a
-     * letter pressed with no editable field focused is swallowed by the composer and the
-     * app never sees it. That breaks single-letter shortcuts (j/k to move through a list,
-     * WASD in a game) and any app-defined combination built on plain letters.
+     * Only when nothing is focused. There, every key belongs to the app -- `b` to go back,
+     * `j`/`k` to move through a list, WASD in a game -- and no mode should change that,
+     * because there is nowhere to type anyway.
      *
-     * `TYPE_NULL` is also how terminals and other editors say "send me raw key events
-     * rather than committed text", so passing through is what they expect anyway.
+     * With an editor focused, rime gets first refusal and [RimeMessage.KeyMessage] re-injects
+     * whatever it does not consume, which is upstream's design and measurably works: in 英
+     * mode letters reach a terminal untouched, `Ctrl+A` still selects all, BackSpace still
+     * deletes. An earlier version of this gate skipped rime for any `TYPE_NULL` editor, which
+     * made a terminal a place where Chinese could not be typed at all -- no key ever reached
+     * rime, so a composition never started, so the gate stayed open forever.
      *
      * A composition still in flight keeps priority, so a focus change mid-word does not
      * strand the preedit.
      */
-    private fun passThroughToApp(): Boolean = hasNoEditableField && !isComposing
+    private fun passThroughToApp(): Boolean = !hasFocusedField && !isComposing
 
     /**
      * Whether rime currently holds an unconfirmed composition.
