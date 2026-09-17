@@ -124,6 +124,11 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 1. 装到设备上，打开输入法触发一次部署，等 `finished updating schemas` 出现
 2. 把 `/sdcard/Android/data/<pkg>/files/rime/build/` 里的产物拷回
    `app/src/main/assets/shared/build/`
+   —— **必须是完整的 13 个文件，且来自同一次全量编译**。
+   那个目录只含**本次重建过的**文件，不是完整集合；把它直接覆盖过去会得到
+   一组时间戳互相矛盾的产物，每次全新安装照样重建。
+   想拿到完整集合，先清空 `assets/shared/build/`、构建一个不带产物的包、
+   装上去让它从零编译一次，再整套取回
 3. 卸载重装，确认日志里 **`round #` 计数为 0**
 
 > `source file changed: default.yaml` 这行**会出现，属正常** —— 它只触发一次配置重编，
