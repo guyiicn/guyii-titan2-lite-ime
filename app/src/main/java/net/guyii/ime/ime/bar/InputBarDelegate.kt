@@ -69,6 +69,7 @@ class InputBarDelegate(override val di: DI) :
     private val theme: Theme get() = scope.theme
     private val windowManager: BoardWindowManager by instance()
     private val commonKeyboardActionListener: CommonKeyboardActionListener by instance()
+    private val keyboardWindow: KeyboardWindow by instance()
     private val candidate: CompactCandidateDelegate by instance()
     private val rime: RimeSession by instance()
 
@@ -123,9 +124,18 @@ class InputBarDelegate(override val di: DI) :
         alwaysUi.updateState(newState)
     }
 
+    /**
+     * 收起键的第一下，在全键盘状态下先退回功能行 —— 见 [KeyboardWindow.leaveFullKeyboard]。
+     * 点按与下滑走同一条路：它们是同一个按钮上的两个动作，分开处理只会更费解。
+     */
+    private fun hideOrLeaveFullKeyboard() {
+        if (keyboardWindow.leaveFullKeyboard()) return
+        service.requestHideSelf(0)
+    }
+
     private val swipeDownHideKeyboardCallback: ((KeyBehavior) -> Unit) = { d ->
         if (d == KeyBehavior.SWIPE_DOWN) {
-            service.requestHideSelf(0)
+            hideOrLeaveFullKeyboard()
         }
     }
 
@@ -138,7 +148,7 @@ class InputBarDelegate(override val di: DI) :
             }
         }.apply {
             hideKeyboardButton.apply {
-                setOnClickListener { service.requestHideSelf(0) }
+                setOnClickListener { hideOrLeaveFullKeyboard() }
                 onSwipe = swipeDownHideKeyboardCallback
             }
             clipboardUi.suggestionView.apply {

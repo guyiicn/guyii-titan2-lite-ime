@@ -218,6 +218,23 @@ class KeyboardWindow(di: DI) :
     /** Sticky: the user asked for a full soft keyboard and should keep getting it. */
     private var fullKeyboardMode = false
 
+    /**
+     * What the hide button should do first while the full soft keyboard is up: put the
+     * one-row function row back. Someone reaching for the bottom-left arrow there is
+     * almost always trying to leave the full keyboard, not to lose the input bar --
+     * the Enter key sits where a "done" button would, so the actual way back (the
+     * 功能行 key, three keys to its left) is easy to miss. Pressing it again hides for
+     * real, because this clears the sticky flag before returning.
+     *
+     * @return true when the keyboard should stay open.
+     */
+    fun leaveFullKeyboard(): Boolean {
+        if (!fullKeyboardMode) return false
+        fullKeyboardMode = false
+        switchKeyboard(".default")
+        return true
+    }
+
     private fun rimeSchemaKeyboard(): String = rime.run { statusCached }.schemaId
 
     private fun smartMatchKeyboard(): String {
