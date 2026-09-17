@@ -3,7 +3,11 @@ SPDX-FileCopyrightText: 2026 guyii
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-# 真机测试报告
+# 真机测试报告（3.4.0）
+
+> **这是 3.4.0 这一个版本的真机测试结果存档**，记录的是当时测出来的具体现象与数据。
+> 每次发版照着执行的通用测试清单（测什么、怎么测、预期是什么）见
+> [`docs/test-checklist.md`](test-checklist.md)。
 
 覆盖自更新之外的全部功能面。重点不是「飞字能不能用」—— 那部分一直在测 ——
 而是**从 Trime 继承下来、改造过程中可能被无意破坏的部分**。
@@ -179,8 +183,4 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 ---
 
-## 复现方式
-
-驱动脚本 `ui.py`（按控件文本定位）未随仓库分发 —— 它依赖特定的设备地址与屏幕状态。
-需要时可重建：`uiautomator dump` 取控件树 → 按 text/resource-id 匹配 → `input tap` 点击中心点，
-匹配不到即中止。
+*通用测试清单：[`docs/test-checklist.md`](test-checklist.md)*
