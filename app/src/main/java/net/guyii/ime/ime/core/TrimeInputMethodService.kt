@@ -614,8 +614,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         // swiped, the events never reach the input method and no amount of tuning the
         // recogniser will help.
         TouchpadLog.line(
-            "INPUT end   ime=${TouchpadLog.motionCount} fromTouchpad=${TouchpadLog.touchpadCount} " +
-                "a11y=${TouchpadLog.a11yCount}",
+            "INPUT end   motionEvents=${TouchpadLog.motionCount} " +
+                "fromTouchpad=${TouchpadLog.touchpadCount}",
         )
         // Get it on disk now: the input method process can be killed at any point after this.
         TouchpadLog.flush()

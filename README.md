@@ -45,6 +45,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 「only supported by the built-in Kika keyboard」，只对出厂自带的输入法生效，
 与本项目无关，开着反而可能抢走手势。
 
+### 飞字不工作时
+
+打开**输入法设置 → 高级 → 飞字诊断日志**（默认关闭），复现一次，然后把
+`Download/guyii-ime-touchpad.txt` 拿出来看。它记录键盘表面的每个事件、
+识别出的手势、以及被丢弃的原因。测完记得关掉。
+
 ## 构建
 
 ```bash
@@ -180,9 +186,12 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
 - 上滑用 `findChildViewUnder(startX)` **按位置命中**候选，不要用键列下标做算术 ——
   候选不等宽，一行能放 16 个而键列只有 10 个
 - 候选行是 **Bulk 模式**不是分页，`page_size` 不影响它能显示多少
-- `TouchpadLog` 会把整条链路写进 `Download/guyii-ime-touchpad.txt`（走 MediaStore，
-  无需存储权限）。真机没有 adb 时，这是唯一的取证手段。文件名用 `.txt`：
-  MediaStore 会按 MIME 补后缀，`.log` 会变成 `.log.txt`
+- 诊断日志由**设置 → 高级 → 飞字诊断日志**控制，默认关闭。打开后 `TouchpadLog`
+  把整条链路写进 `Download/guyii-ime-touchpad.txt`（走 MediaStore，无需存储权限），
+  真机没有 adb 时这是唯一的取证手段。开关即时生效，不用重启输入法。
+  热路径上先判 `TouchpadLog.enabled` 再拼字符串 —— 键盘表面约 60Hz，
+  格式化一条马上要丢掉的日志是白费功夫。文件名用 `.txt` 而非 `.log`：
+  MediaStore 会按 MIME 补后缀，`.log` 会落成 `.log.txt`
 
 ## 4. 改屏幕按键
 

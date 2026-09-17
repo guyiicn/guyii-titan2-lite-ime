@@ -439,6 +439,7 @@ class AppPrefs(
             const val UI_MODE = "ui_mode"
             const val SHOW_APP_ICON = "show_app_icon"
             const val IGNORE_SYSTEM_GESTURE_INSETS = "ignore_system_gesture_insets"
+            const val TOUCHPAD_DEBUG_LOG = "touchpad_debug_log"
         }
 
         enum class UiMode(override val stringRes: Int) : PreferenceDelegateEnum {
@@ -458,6 +459,17 @@ class AppPrefs(
             R.string.ignore_system_gesture_insets,
             IGNORE_SYSTEM_GESTURE_INSETS,
             false,
+        )
+
+        /**
+         * Off by default: the log is a diagnostic tool, and writing it on every swipe is
+         * pure overhead for anyone who is not chasing a flick-typing problem.
+         */
+        val touchpadDebugLog = switch(
+            R.string.touchpad_debug_log,
+            TOUCHPAD_DEBUG_LOG,
+            false,
+            R.string.touchpad_debug_log_summary,
         )
     }
 }

@@ -257,4 +257,6 @@
     <string name="word_segment">Word segment</string>
     <string name="star_success">Star success</string>
     <string name="ignore_system_gesture_insets">Ignore system gesture insets</string>
+    <string name="touchpad_debug_log">飞字诊断日志</string>
+    <string name="touchpad_debug_log_summary">把键盘表面的滑动事件与识别结果写入 Download/guyii-ime-touchpad.txt，用于排查飞字问题。平时请关闭。</string>
 </resources>

@@ -80,7 +80,7 @@ class TouchpadGesture(
                 startTime = event.eventTime
                 moves = 0
                 emittedSteps = 0
-                TouchpadLog.line(
+                if (TouchpadLog.enabled) TouchpadLog.line(
                     "$tag MOTION down src=0x%x dev=%d(%s) x=%.0f y=%.0f".format(
                         event.source,
                         event.deviceId,
@@ -106,7 +106,7 @@ class TouchpadGesture(
                         return true
                     }
                     val swipe = classify(dx, dy)
-                    TouchpadLog.line(
+                    if (TouchpadLog.enabled) TouchpadLog.line(
                         "$tag GESTURE dx=%.0f dy=%.0f moves=%d dur=%dms startX=%.0f -> %s".format(
                             dx,
                             dy,

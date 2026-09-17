@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import net.guyii.ime.BuildConfig
+import net.guyii.ime.data.prefs.AppPrefs
 import net.guyii.ime.util.appContext
 import timber.log.Timber
 import java.io.File
@@ -62,6 +63,18 @@ object TouchpadLog {
     private var written = 0L
     private var broken = false
 
+    private val enabledPref by AppPrefs.defaultInstance().advanced.touchpadDebugLog
+
+    /**
+     * Whether anything is written at all, read from the setting each time so flipping the
+     * switch takes effect without restarting the keyboard.
+     *
+     * Callers check this before building their message: the surface samples at roughly
+     * 60 Hz, and formatting a line that is about to be discarded is work nobody asked for.
+     */
+    val enabled: Boolean
+        get() = !broken && enabledPref
+
     /** Counts motion events between input sessions, so "none arrived" is stated explicitly. */
     @Volatile
     var motionCount = 0
@@ -73,16 +86,8 @@ object TouchpadLog {
 
     private var otherLogged = 0
 
-    /** Motion events seen through the accessibility route, counted separately from the IME's. */
-    @Volatile
-    var a11yCount = 0
-        private set
-
-    fun a11yMotion() {
-        a11yCount++
-    }
-
     fun countMotion(fromTouchpad: Boolean) {
+        if (!enabled) return
         motionCount++
         if (fromTouchpad) touchpadCount++
     }
@@ -90,7 +95,6 @@ object TouchpadLog {
     fun resetCounts() {
         motionCount = 0
         touchpadCount = 0
-        a11yCount = 0
         otherLogged = 0
     }
 
@@ -102,7 +106,7 @@ object TouchpadLog {
      * thousands would, and the file stays small enough to send.
      */
     fun otherSource(describe: () -> String) {
-        if (otherLogged >= OTHER_LIMIT) return
+        if (!enabled || otherLogged >= OTHER_LIMIT) return
         otherLogged++
         line(describe() + if (otherLogged == OTHER_LIMIT) "  (further such lines suppressed)" else "")
     }
@@ -110,7 +114,7 @@ object TouchpadLog {
     private const val OTHER_LIMIT = 12
 
     fun line(message: String) {
-        if (broken) return
+        if (!enabled) return
         synchronized(lock) {
             buffer.append('[').append(stamp.format(Date())).append("] ").append(message).append('\n')
             if (buffer.length >= FLUSH_THRESHOLD) {
