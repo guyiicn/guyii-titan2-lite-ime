@@ -5,11 +5,58 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # guyii 的 Titan Lite2 输入法
 
-给 **Unihertz Titan 2 Lite** 定制的中文输入法。基于 [Trime（同文输入法）][trime] fork，
-内置[雾凇拼音][rime-ice]词库，装完打开就能打字。
+**给 Unihertz Titan 2 Lite 一台机器定制的中文输入法。**
+基于 [Trime（同文输入法）][trime] fork，内置[雾凇拼音][rime-ice]词库，装完打开就能打字 ——
+无导入、无向导、无手动部署，也不联网。
 
-这不是一个通用输入法。它围绕一台机器的具体形态做取舍：一块 1080×1200 的方屏、
-一排只有字母的实体键盘、以及键帽下面那层可以当触摸板用的电容感应层。
+> **不是这台机器就别装。** 它围绕这台机器的具体形态做取舍：一块 1080×1200 的方屏、
+> 一排只有字母的实体键盘、以及键帽下那层可以当触摸板用的电容感应层。
+> 换到别的手机上，屏幕那一行补的键你用不上，飞字更是没有硬件基础。
+
+### [⬇ 下载最新版](https://github.com/guyiicn/guyii-titan2-lite-ime/releases/latest)
+
+[![最新版本](https://img.shields.io/github/v/release/guyiicn/guyii-titan2-lite-ime?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=blue)](https://github.com/guyiicn/guyii-titan2-lite-ime/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/guyiicn/guyii-titan2-lite-ime/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://github.com/guyiicn/guyii-titan2-lite-ime/releases)
+[![许可证](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-GPL--3.0--or--later-green)](LICENSE)
+
+仅 arm64-v8a。装完在系统设置里启用并选择即可，**不需要任何额外授权**。
+
+**装完还要改一处系统设置，否则飞字完全没反应** —— 见[下方说明](#要用飞字还得改一处系统设置)。
+
+<details>
+<summary><b>English summary</b></summary>
+
+A Chinese input method built for exactly one phone: the **Unihertz Titan 2 Lite**
+(the device reports itself as *Titan 2 Elite*). A fork of
+[Trime](https://github.com/osfans/trime) with the [rime-ice](https://github.com/iDvel/rime-ice)
+dictionary baked in — install, switch to it, start typing. No setup wizard, no data import,
+no network permission at all.
+
+**Don't install this on any other phone.** Every choice in it assumes this hardware: a square
+1080×1200 screen, a physical keyboard carrying only letters, and the capacitive layer under
+the keycaps.
+
+What it adds over stock Trime:
+
+- **An on-screen function row** for what the hardware keyboard lacks — `Esc / Tab / Ctrl`,
+  arrow keys, copy and paste — plus a four-row symbol page, and a full soft keyboard to fall
+  back on if the hardware keyboard ever fails.
+- **Flick typing on the keycaps**: swipe sideways to move the candidate highlight, swipe up to
+  commit it, swipe down to backspace. Your fingers never leave the keyboard.
+- **A Shift+Alt punctuation layer**, so ASCII punctuation can be mixed into Chinese without
+  switching modes.
+- **No network permission.** `INTERNET` and `ACCESS_NETWORK_STATE` are stripped from the merged
+  manifest and cannot be added back by any dependency — check it yourself with
+  `aapt2 dump badging`.
+
+**Required after installing**, or flick typing will do nothing:
+*Settings → Keyboard gesture → Scroll assistant →* pick this input method *→* set it to
+**`Sliding Mode 2`**. Leave the system's own *Flick typing* switch off; it only works with the
+stock Kika keyboard.
+
+The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
+
+</details>
 
 ## 它做了什么
 
@@ -29,11 +76,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 硬件实测结论、每个设计决策的依据、以及踩过的坑，都记在 **[DESIGN.md](DESIGN.md)**。
 
-## 安装
-
-只提供 arm64-v8a。装完在系统设置里启用并选择即可，**不需要**任何额外授权。
-
-### 要用飞字，还得改一处系统设置
+## 要用飞字，还得改一处系统设置
 
 **Settings → Keyboard gesture → Scroll assistant → 找到「guyii 的 Titan Lite2 输入法」
 → 选 `Sliding Mode 2`**
