@@ -52,7 +52,8 @@ What it adds over stock Trime:
 **Required after installing**, or flick typing will do nothing:
 *Settings → Keyboard gesture → Scroll assistant →* pick this input method *→* set it to
 **`Sliding Mode 2`**. Leave the system's own *Flick typing* switch off; it only works with the
-stock Kika keyboard.
+stock Kika keyboard. The setting is **per application**, so it has to be set on this IME
+specifically — screenshots are in the Chinese section below.
 
 The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 
@@ -81,6 +82,17 @@ The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 **Settings → Keyboard gesture → Scroll assistant → 找到「guyii 的 Titan Lite2 输入法」
 → 选 `Sliding Mode 2`**
 
+<table>
+<tr>
+<td width="50%"><img src="docs/test/setup-1-keyboard-gesture.png" alt="Keyboard gesture 菜单"></td>
+<td width="50%"><img src="docs/test/setup-2-scroll-assistant.png" alt="Scroll assistant 按应用设置"></td>
+</tr>
+<tr>
+<td>① <b>Scroll assistant</b> 进去<br>下面那个 <b>Flick typing</b> 保持关闭</td>
+<td>② 找到本输入法，选 <b>Sliding Mode 2</b><br><i>（其余应用名已模糊）</i></td>
+</tr>
+</table>
+
 这一步不做，键帽表面的滑动到不了输入法，飞字完全没反应。该设置是**按应用**配置的，
 每个应用可以是 `Close` / `Slide and click` / `Sliding Mode 1` / `Sliding Mode 2` /
 `Mouse Mode…` 之一，只有 Mode 2 会把带完整坐标的触摸事件送过来。
@@ -88,6 +100,11 @@ The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 同一页里系统自带的 **Flick typing 开关请保持关闭** —— 它的说明写着
 「only supported by the built-in Kika keyboard」，只对出厂自带的输入法生效，
 与本项目无关，开着反而可能抢走手势。
+
+> 这两处设置当初是摸错过的：早先的结论是「必须**关闭** Scroll assistant」，
+> 依据是 KeyProbe 在助手关闭时收到 78 条事件、开启时只有 3 条。
+> 那组对比没有区分该设置是**按应用**配置的 —— 真正起作用的是应用被指派了哪个模式，
+> 不是助手的总开关。
 
 ### 飞字不工作时
 

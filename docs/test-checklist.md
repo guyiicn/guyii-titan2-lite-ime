@@ -220,7 +220,8 @@ uiautomator dump        取控件树
 
 触摸板手势与实体键帽**无法用 adb 模拟**，这一节全部 👤。
 
-**前置条件**：Settings → Keyboard gesture → Scroll assistant → 找到本输入法 → 选 `Sliding Mode 2`；
+**前置条件**（截图见 [README](../README.md#要用飞字还得改一处系统设置)）：
+Settings → Keyboard gesture → Scroll assistant → 找到本输入法 → 选 `Sliding Mode 2`；
 同一页的系统 Flick typing 开关保持**关闭**。不做这一步飞字完全没反应，不是代码问题。
 
 | | # | 测试项 | 怎么测 | 预期 | 方式 |
