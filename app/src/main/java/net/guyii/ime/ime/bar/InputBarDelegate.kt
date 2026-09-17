@@ -76,8 +76,6 @@ class InputBarDelegate(override val di: DI) :
 
     private val prefs = AppPrefs.defaultInstance()
 
-    private val hideQuickBar by prefs.keyboard.hideInputBar
-
     private val clipboardSuggestion by prefs.clipboard.clipboardSuggestion
 
     private val clipboardSuggestionTimeout by prefs.clipboard.clipboardSuggestionTimeout
@@ -242,12 +240,10 @@ class InputBarDelegate(override val di: DI) :
 
     val view by lazy {
         ViewAnimator(context).apply {
-            visibility =
-                if (hideQuickBar) {
-                    View.GONE
-                } else {
-                    View.VISIBLE
-                }
+            // Always visible: the candidate row lives in this bar, and flick typing
+            // commits whatever is highlighted there. Hiding it took away both, which is
+            // not a trade anyone would want to make by accident, so the setting is gone.
+            visibility = View.VISIBLE
             background =
                 scope.decorDrawable(
                     "candidate_background",
