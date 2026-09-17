@@ -806,12 +806,18 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                     TouchpadLog.line("  SWIPE Up dropped: rime is not composing")
                     return
                 }
-                // Take what is drawn above the finger. Candidates are not a fixed width,
-                // so the column index is only a fallback for when the row cannot be
-                // hit-tested (it has not been laid out, say).
-                val index = inputView?.candidateIndexAt(swipe.startX) ?: swipe.keyIndex
-                TouchpadLog.line("  SWIPE Up at x=${swipe.startX.toInt()} -> candidate $index")
-                postRimeJob { selectCandidate(index, global = true) }
+                // Confirms whatever is highlighted -- the sideways swipe moves the
+                // highlight, this commits it. Aiming at a particular candidate instead
+                // was tried and did not work: the key surface gives no feedback about
+                // where a finger is, so in practice every swipe landed in the same
+                // comfortable spot near the middle (seven of eight measured swipes fell
+                // between 53% and 62% across) and picked whatever happened to be there.
+                //
+                // Space is how rime commits its highlighted candidate, so it needs no
+                // index: rime already knows which one that is, and no reconstruction here
+                // can be more correct than that.
+                TouchpadLog.line("  SWIPE Up -> commit highlighted candidate")
+                postRimeJob { processKey(KeyValue(' '.code), KeyModifiers.Empty) }
             }
             // Sideways swipes are handled continuously in onTouchpadScroll; reaching here
             // means the travel was too small to make a step.

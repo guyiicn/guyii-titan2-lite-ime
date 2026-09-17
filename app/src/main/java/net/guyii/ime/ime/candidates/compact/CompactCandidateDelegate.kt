@@ -97,10 +97,15 @@ class CompactCandidateDelegate(override val di: DI) :
     val adapter by lazy {
         CompactCandidateViewAdapter(scope).apply {
             setOnItemClickListener { _, _, position ->
-                rime.launchOnReady { it.selectCandidate(position, global = true) }
+                rime.launchOnReady { it.selectCandidate(windowStart + position, global = true) }
             }
             setOnItemLongClickListener { _, view, position ->
-                inputView.showCandidateActionMenu(position, items[position].text, view, global = true)
+                inputView.showCandidateActionMenu(
+                    windowStart + position,
+                    items[position].text,
+                    view,
+                    global = true,
+                )
                 true
             }
         }
@@ -183,29 +188,41 @@ class CompactCandidateDelegate(override val di: DI) :
     }
 
     /**
-     * Which candidate sits at [x] across the bar, or null if nothing does.
-     *
-     * Flick typing aims by position, not by arithmetic: the key surface and the candidate
-     * bar span the same width, so a swipe up from a point on the keyboard should take
-     * whatever is drawn above that point. Candidates are not a fixed width, so the only
-     * honest answer comes from hit-testing the row.
+     * Index of the first candidate currently on show. Anything that acts on a position in
+     * the bar -- a tap, a long press -- has to add this to get back to rime's own index.
      */
-    fun candidateIndexAt(x: Float): Int? {
-        val child = view.findChildViewUnder(x, view.height / 2f) ?: return null
-        return view.getChildAdapterPosition(child).takeIf { it != RecyclerView.NO_POSITION }
+    private var windowStart = 0
+
+    companion object {
+        /** Key columns on the Titan's first letter row; see [onCandidateListUpdate]. */
+        private const val COLUMNS = 10
     }
 
     override fun onCandidateListUpdate(data: Candidates.Bulk) {
-        val (total, highlighted, candidates) = data
+        val (total, highlighted, all) = data
+
+        // Show at most one candidate per key column: laying out everything rime offers
+        // packed sixteen narrow entries into the same width, which reads as clutter.
+        //
+        // The window slides to keep the highlighted candidate inside it, because a
+        // sideways swipe moves that highlight and an upward swipe commits it -- a
+        // highlight scrolled out of view would leave the flick typist committing something
+        // they cannot see.
+        windowStart = (highlighted - COLUMNS / 2).coerceIn(0, maxOf(0, all.size - COLUMNS))
+        val start = windowStart
+        val candidates =
+            if (all.size > COLUMNS) all.copyOfRange(start, minOf(start + COLUMNS, all.size)) else all
+        val windowHighlight = highlighted - start
 
         val maxSpanCount = maxSpanCountPref.getValue()
 
-        // Stretching candidates to fill the row would leave nothing to scroll to, so the
-        // fill styles only apply while everything already fits.
-        when (if (candidates.size > maxSpanCount) CompactCandidateMode.NEVER_FILL else fillStyle) {
+        when (fillStyle) {
             CompactCandidateMode.NEVER_FILL -> {
                 layoutMinWidth = 0
-                layoutFlexGrow = 0f
+                // Spread the ten across the full width rather than leaving them bunched at
+                // the left: every candidate then sits above roughly its own key, and each
+                // is a wide enough target to aim a flick at.
+                layoutFlexGrow = 1f
                 secondLayoutPassNeeded = false
             }
             CompactCandidateMode.AUTO_FILL -> {
@@ -223,7 +240,7 @@ class CompactCandidateDelegate(override val di: DI) :
         }
 
         adapter.updateLayoutParams(layoutMinWidth, layoutFlexGrow)
-        adapter.updateCandidates(candidates, total, highlighted)
+        adapter.updateCandidates(candidates, total, windowHighlight)
 
         // not sure why empty candidates won't trigger `FlexboxLayoutManager#onLayoutCompleted()`
         if (candidates.isEmpty()) {

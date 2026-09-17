@@ -127,10 +127,6 @@ class InputView(
     private val windowManager: BoardWindowManager by instance()
     private val inputBar: InputBarDelegate by instance()
     private val keyboardWindow: KeyboardWindow by instance()
-    private val compactCandidate: CompactCandidateDelegate by instance()
-
-    /** Candidate drawn at [x] across the bar, for flick typing; see the delegate. */
-    fun candidateIndexAt(x: Float): Int? = compactCandidate.candidateIndexAt(x)
     private val liquidWindow: LiquidWindow by instance()
 
     private val candidatesMode by AppPrefs.defaultInstance().candidates.mode
