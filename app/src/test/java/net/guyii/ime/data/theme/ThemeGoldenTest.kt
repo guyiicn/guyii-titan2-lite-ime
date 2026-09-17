@@ -9,6 +9,8 @@ import net.guyii.ime.data.theme.model.KeyActionToken
 import net.guyii.ime.data.theme.model.TextKeyboard
 import net.guyii.ime.ime.keyboard.KeyBehavior
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.assertions.withClue
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -112,7 +114,7 @@ class ThemeGoldenTest :
 
                 Then("color schemes and preset keys are decoded") {
                     theme.colorSchemes.size shouldBe 37
-                    theme.presetKeys.size shouldBe 118
+                    theme.presetKeys.size shouldBe 119
                     val brightnessDown = theme.presetKeys.getValue("BRIGHTNESS_DOWN")
                     brightnessDown.label shouldBe "亮度-"
                     brightnessDown.send shouldBe "BRIGHTNESS_DOWN"
@@ -172,6 +174,46 @@ class ThemeGoldenTest :
                 Then("the pure __include 'scj6' keyboard equals cangjie5") {
                     theme.presetKeyboards.getValue("scj6") shouldBe
                         theme.presetKeyboards.getValue("cangjie5")
+                }
+
+                Then("every guyii keyboard has a way back to the function row") {
+                    // A keyboard reachable from the function row but with no path back strands
+                    // the user: upstream's `default` is `lock: true`, so in an app that never
+                    // changes focus (a terminal) onStartInput never runs to re-match it.
+                    // That is exactly what `Keyboard_letter` used to do -- it selected
+                    // `default`, which carries no key returning to the function row.
+                    val selectOf = { keyboardId: String ->
+                        theme.presetKeyboards.getValue(keyboardId).keys
+                            .flatMap { it.behaviors.values }
+                            .filterIsInstance<KeyActionToken.Plain>()
+                            .mapNotNull { theme.presetKeys[it.token]?.select }
+                            .filter { it.isNotEmpty() }
+                    }
+                    val guyiiKeyboards =
+                        listOf("rime_ice", "guyii_sym1", "guyii_full", "guyii_ascii", "guyii_num")
+
+                    // Nothing in the guyii set may lead to a keyboard outside it; ".default"
+                    // is allowed because it re-matches against the current schema.
+                    guyiiKeyboards.forEach { id ->
+                        selectOf(id).forEach { target ->
+                            withClue("$id selects $target") {
+                                (target in guyiiKeyboards || target.startsWith(".")) shouldBe true
+                            }
+                        }
+                    }
+
+                    // And every one of them reaches the function row without a focus change.
+                    val reachesFunctionRow = { id: String ->
+                        generateSequence(setOf(id)) { seen ->
+                            (seen + seen.flatMap(selectOf).filter { it in guyiiKeyboards })
+                                .takeIf { it != seen }
+                        }.last()
+                    }
+                    guyiiKeyboards.forEach { id ->
+                        withClue("$id cannot reach rime_ice") {
+                            reachesFunctionRow(id) shouldContain "rime_ice"
+                        }
+                    }
                 }
 
                 Then("every keyboard decodes a non-empty key set") {

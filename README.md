@@ -65,7 +65,8 @@ The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 - **不联网** —— `INTERNET` 与 `ACCESS_NETWORK_STATE` 从合并清单中移除，任何依赖都无法加回，
   可用 `aapt2 dump badging` 验证
 - **屏幕功能行** —— 实体键盘缺的 `Esc / Tab / Ctrl / ↑↓←→` 和复制粘贴，外加一页四行符号；
-  `▸` 循环三档：功能行 → 符号页 → **完整软键盘**（实体键盘损坏时的退路，会被记住）
+  `▸` 走三档：功能行 → 符号页 → **完整软键盘**（实体键盘损坏时的退路，会被记住），
+  长按 `▸` 一步直达完整软键盘。每一档都有「功能行」键一键回到第一栏
 - **Shift+Alt 标点层** —— 中文输入中直接混打英文标点，不切模式
 - **飞字** —— 在键帽表面滑动：横滑移动高亮、上滑确认、下滑退格，手指不离开键盘
 
@@ -296,6 +297,12 @@ APK 解压出来的文件 mtime 本是安装时间、每次都不同，所以
   **不要把这个粘滞扩大到所有键盘** —— 那等于把那个卡死 bug 放回来
 - **每个键盘都要写 `lock: true`** —— 否则普通文本框走 `evalKeyboard("")` 时会回退到
   `lastLockKeyboardId`，一旦贴错就再也回不来
+- **本项目的键盘不许 `select` 到上游的键盘**。上游的 `default`／`symbols` 上没有任何
+  回到功能行的键，而 `default` 还是 `lock: true` —— 在终端这种全程不换焦点的应用里，
+  `onStartInput` 不会再跑，按进去就出不来了。3.4.2 修的就是这个：`Keyboard_letter`
+  原本 `select: default`，符号页第四行的「字母」键和功能行 `▸` 的长按都会落进去。
+  现在 `Keyboard_letter → rime_ice`、`Keyboard_symbols → guyii_sym1`，
+  `ThemeGoldenTest` 里有一条断言遍历 `select` 图，确保每个键盘都能一步走回功能行
 - **每个键盘要自设 `keyboard_height`** —— 不设会被主题全局的 `keyboard_height: 250` 撑满
 - **`onStartInput` 里普通文本分支用 `".default"` 而不是 `""`** —— 每次聚焦重新匹配，
   这样即使首次因 Rime 未就绪贴错了键盘也能自愈

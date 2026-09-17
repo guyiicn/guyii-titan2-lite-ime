@@ -892,6 +892,7 @@ preset_keys:
   guyii_page_sym1: {label: '▸', send: Eisu_toggle, select: guyii_sym1}
   guyii_page_full: {label: '▸', send: Eisu_toggle, select: guyii_full}
   guyii_back_row: {label: '功能行', send: Eisu_toggle, select: rime_ice}
+  guyii_open_full: {label: '全键盘', send: Eisu_toggle, select: guyii_full}
   guyii_cn_en: {toggle: ascii_mode, send: SWITCH_CHARSET, states: [ 中, 英 ]}
   guyii_schema: {label: 方案, send: F4}
   guyii_http: {label: 'http://', commit: 'http://'}
@@ -931,10 +932,13 @@ preset_keys:
   Charset_switch: {toggle: extended_charset, send: SWITCH_CHARSET, states: [ 常用, 增廣 ]}
   Punct_switch: {toggle: ascii_punct, send: SWITCH_CHARSET, states: [ 。，, ．， ]}
   #切换键盘
-  Keyboard_symbols: {label: 符号, send: Eisu_toggle, select: symbols}
+  # 指向本项目的四行符号页；上游的 symbols 回不到功能行。
+  Keyboard_symbols: {label: 符号, send: Eisu_toggle, select: guyii_sym1}
   Keyboard_number: {label: 数字, send: Eisu_toggle, select: number}
   Keyboard_mini: {label: 迷你, send: Eisu_toggle, select: mini}
-  Keyboard_letter: {label: 字母, send: Eisu_toggle, select: default}
+  # 原本 select: default —— 上游 40 键键盘，lock 为真且没有任何返回功能行的键，
+  # 在 Termux 这类焦点不变的应用里按下去就出不来了。改为直接回功能行。
+  Keyboard_letter: {label: 功能行, send: Eisu_toggle, select: rime_ice}
   Keyboard_default: {label: 返回, send: Eisu_toggle, select: .default}
   Keyboard_switch: {label: 键盘, send: Eisu_toggle, select: .next}
   liquid_keyboard_switch: { label: 更多, send: FUNCTION, command: liquid_keyboard, option: "更多" }
@@ -990,7 +994,7 @@ preset_keyboards:
     name: guyii数字行
     lock: true #常驻功能行，切换程序时记忆
     keyboard_height: 56
-    width: 10
+    width: 9
     height: 44
     keys:
     - {click: '1'}
@@ -1003,6 +1007,7 @@ preset_keyboards:
     - {click: '8'}
     - {click: '9'}
     - {click: '0'}
+    - {click: Keyboard_letter}
 
   guyii_ascii:
     name: guyii英文行
@@ -1041,7 +1046,7 @@ preset_keyboards:
     - {click: Down}
     - {click: guyii_copy}
     - {click: guyii_paste}
-    - {click: guyii_page_sym1, long_click: Keyboard_letter}
+    - {click: guyii_page_sym1, long_click: guyii_open_full}
 
   guyii_sym1:
     name: guyii符号页
@@ -1143,7 +1148,7 @@ preset_keyboards:
       - {click: '.', long_click: '>'}
       - {click: '/', long_click: '?'}
       - {click: Shift_L}
-      - {click: Keyboard_symbols, long_click: Keyboard_number}
+      - {click: Keyboard_symbols}
       - {click: Mode_switch, long_click: Menu}
       - {click: space, width: 25}
       - {click: guyii_back_row, width: 15}
