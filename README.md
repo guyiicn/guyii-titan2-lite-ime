@@ -78,6 +78,30 @@ The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 
 硬件实测结论、每个设计决策的依据、以及踩过的坑，都记在 **[DESIGN.md](DESIGN.md)**。
 
+## 屏幕上长什么样
+
+屏幕只占一行。实体键盘缺的那几个键常驻在这里，够用一整天：
+
+![功能行](docs/ui/row-function.png)
+
+`中/英 · Esc · Tab · Ctrl · ← → ↑ ↓ · 复制 · 粘贴 · ▸`。长按最左边进方案选单，长按 `▸` 直达全键盘。
+
+打字时候选顶上来，功能行仍在原位 —— 十个候选均匀铺满，每个大致对应下面一个键的正上方，
+这正是飞字「横滑选、上滑确认」所依赖的布局：
+
+![候选行](docs/ui/row-candidates.png)
+
+按 `▸` 翻到第二档：四行符号页。括号、管道、波浪号、反引号都在，写 shell 不用再翻三层菜单；
+第四行是 `http://` `https://` 整串上屏，以及退回功能行的路：
+
+![四行符号页](docs/ui/page-symbols.png)
+
+第三档是一整块软键盘 —— 实体键盘万一坏了的退路。编辑功能都在长按上
+（`a`=全选 `x`=剪切 `c`=复制 `v`=粘贴 `h/j/k/l`=方向键 `s`=行首 `d`=行尾），
+所以不需要在它上面再叠一条功能行：
+
+![完整软键盘](docs/ui/page-full.png)
+
 ## 要用飞字，还得改一处系统设置
 
 **Settings → Keyboard gesture → Scroll assistant → 找到「guyii 的 Titan Lite2 输入法」
