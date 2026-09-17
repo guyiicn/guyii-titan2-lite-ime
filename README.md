@@ -97,6 +97,8 @@ The rest of the documentation is in Chinese. Licensed GPL-3.0-or-later.
 
 ![终端里打中文](docs/ui/term-chinese.png)
 
+*整屏未裁。`[guyi@guyii-home ~]$ echo ` 是 ssh 过去的真实会话，上面挂着 `ni hao` 的编码与候选。*
+
 十个候选均匀铺满，每个大致对应下面一个键的正上方 —— 这正是飞字「横滑选、上滑确认」
 所依赖的布局。同样的候选行在普通文本框里：
 
