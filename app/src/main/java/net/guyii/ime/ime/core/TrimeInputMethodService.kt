@@ -69,6 +69,14 @@ import splitties.systemservices.clipboardManager
 import splitties.systemservices.inputMethodManager
 import timber.log.Timber
 
+/**
+ * Device id for a key put back after rime declined it.
+ *
+ * Measured on the Titan: its built-in keyboard reports `deviceId=0`, which is also
+ * [KeyCharacterMap.BUILT_IN_KEYBOARD].
+ */
+private const val HARDWARE_DEVICE_ID = KeyCharacterMap.BUILT_IN_KEYBOARD
+
 /** Shift+Alt punctuation layer; each keycode carries the symbol printed on its Alt layer. */
 private val ASCII_PUNCTUATION_LAYER =
     mapOf(
@@ -278,11 +286,18 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                         val keyCode = it.value.keyCode
                         if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                             // recognized keyCode
+                            //
+                            // This key came off the hardware keyboard, so it has to go back
+                            // looking like one. The default `FLAG_SOFT_KEYBOARD` +
+                            // `VIRTUAL_KEYBOARD` device id tells the app "a soft keyboard
+                            // typed this", and a terminal that sees that flag is entitled to
+                            // take the character and drop the modifiers -- Ctrl+C arrives as
+                            // a bare `c`.
                             val eventTime = SystemClock.uptimeMillis()
                             if (it.modifiers.release) {
-                                sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                                sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState, HARDWARE_DEVICE_ID, 0)
                             } else {
-                                sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                                sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState, HARDWARE_DEVICE_ID, 0)
                             }
                         } else {
                             if (!it.modifiers.release && it.value.value > 0) {
@@ -678,6 +693,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         eventTime: Long,
         keyEventCode: Int,
         metaState: Int = 0,
+        deviceId: Int = KeyCharacterMap.VIRTUAL_KEYBOARD,
+        flags: Int = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
     ): Boolean {
         val ic = currentInputConnection ?: return false
         return ic.sendKeyEvent(
@@ -688,9 +705,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 keyEventCode,
                 0,
                 metaState,
-                KeyCharacterMap.VIRTUAL_KEYBOARD,
+                deviceId,
                 0,
-                KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
+                flags,
                 InputDevice.SOURCE_KEYBOARD,
             ),
         )
@@ -700,6 +717,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         eventTime: Long,
         keyEventCode: Int,
         metaState: Int = 0,
+        deviceId: Int = KeyCharacterMap.VIRTUAL_KEYBOARD,
+        flags: Int = KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
     ): Boolean {
         val ic = currentInputConnection ?: return false
         return ic.sendKeyEvent(
@@ -710,9 +729,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 keyEventCode,
                 0,
                 metaState,
-                KeyCharacterMap.VIRTUAL_KEYBOARD,
+                deviceId,
                 0,
-                KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
+                flags,
                 InputDevice.SOURCE_KEYBOARD,
             ),
         )
