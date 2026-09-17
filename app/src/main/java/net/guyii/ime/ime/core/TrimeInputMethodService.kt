@@ -876,8 +876,10 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun forwardKeyEvent(event: KeyEvent): Boolean {
-        // Before the gate: this layer is itself Shift+Alt, which the gate now passes through.
+        // Both of these run before the gate: each is itself an Alt combination, which the
+        // gate would otherwise hand straight to the app.
         if (commitAsciiPunctuation(event)) return true
+        if (commitAltLayer(event)) return true
         if (passThroughToApp(event)) return false
         val keyVal = KeyValue.fromKeyEvent(event)
         if (keyVal.value != RimeKeyMapping.RimeKey_VoidSymbol) {
@@ -980,6 +982,32 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         if (event.action == KeyEvent.ACTION_DOWN) {
             postRimeJob { clearComposition() }
             currentInputConnection?.commitText(text, 1)
+        }
+        return true
+    }
+
+    /**
+     * Commits the character the device's own key map puts on the Alt layer.
+     *
+     * On the Titan that layer is where the digits and most symbols live --
+     * `/system/usr/keychars/TitanKey.kcm` has `Alt+W = 1`, `Alt+P = @`, `Alt+O = +`. It is
+     * a *character* layer, printed on the keycaps, not a Meta modifier. A terminal reads
+     * any Alt-modified key as Meta and emits `ESC` followed by the base letter, so handing
+     * the event through produced `^[w` where the keycap promises `1`. Android has already
+     * resolved the character for us in [KeyEvent.getUnicodeChar]; committing that is what
+     * the keycap says, and it reads the same in a terminal and in a text field.
+     *
+     * Ctrl and Meta combinations are left alone -- those really are chords, and
+     * [passThroughToApp] hands them to the app untouched.
+     */
+    private fun commitAltLayer(event: KeyEvent): Boolean {
+        if (event.metaState and KeyEvent.META_ALT_ON == 0) return false
+        if (event.metaState and (KeyEvent.META_CTRL_ON or KeyEvent.META_META_ON) != 0) return false
+        val char = event.unicodeChar
+        if (char == 0) return false
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            postRimeJob { clearComposition() }
+            currentInputConnection?.commitText(char.toChar().toString(), 1)
         }
         return true
     }
