@@ -53,10 +53,16 @@ cd guyii-titan2-lite-ime
 ./gradlew :app:assembleRelease -PbuildABI=arm64-v8a
 ```
 
-**不需要 `--recursive`**：librime / OpenCC / snappy 等原生依赖的源码直接在仓库里
-（上游是子模块，本项目改为随仓库分发，克隆即可构建）。Boost 是唯一的例外 ——
-它有 661MB，由 `app/src/main/jni/cmake/Boost.cmake` 在首次构建时从 GitHub 发布页
-自动下载并校验 SHA256，所以**首次构建需要联网**。
+**不需要 `--recursive`**：librime / OpenCC / snappy 及 librime 自己那层依赖
+（glog、marisa-trie、leveldb、yaml-cpp）的源码都直接在仓库里 —— 上游是子模块，
+本项目改为随仓库分发，克隆即可构建。
+
+Boost 是唯一的例外：它解开有 661MB，由 `app/src/main/jni/cmake/Boost.cmake`
+在首次构建时从 GitHub 发布页自动下载并校验 SHA256，所以**首次构建需要联网**。
+
+> 实测：从零 clone 到 `assembleDebug` 成功约 **2 分钟**（含 Boost 下载与原生编译）。
+> 这条路径每次改动构建相关的东西都该重跑一遍 —— 本机工作树里有的东西，
+> 仓库里未必有，光看本机构建成功说明不了任何问题。
 
 ### 前提
 
@@ -67,6 +73,9 @@ cd guyii-titan2-lite-ime
 | NDK | 28.0.13004108 |
 | CMake | 3.31.6 |
 | Python | 3（OpenCC 生成词典文本需要） |
+
+SDK 路径通过 `ANDROID_HOME` 环境变量或仓库根目录的 `local.properties`
+（`sdk.dir=/path/to/sdk`）指定 —— 后者已在 `.gitignore` 中，克隆后不会自带。
 
 ### 签名
 
