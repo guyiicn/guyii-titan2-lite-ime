@@ -69,6 +69,10 @@ import splitties.systemservices.clipboardManager
 import splitties.systemservices.inputMethodManager
 import timber.log.Timber
 
+/** Everything but Shift: a key carrying one of these resolved its own character already. */
+private const val NON_SHIFT_MODIFIERS =
+    KeyEvent.META_CTRL_ON or KeyEvent.META_ALT_ON or KeyEvent.META_META_ON
+
 /**
  * Device id for a key put back after rime declined it.
  *
@@ -572,6 +576,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         Timber.d("onStartInput: restarting=$restarting")
         val isNullType = attribute.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL
         hasFocusedField = attribute.fieldId != 0
+        passedThroughKeys.clear()
         postRimeJob {
             if (restarting) {
                 // when input restarts in the same editor, clear previous composition
@@ -871,8 +876,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun forwardKeyEvent(event: KeyEvent): Boolean {
-        if (passThroughToApp()) return false
+        // Before the gate: this layer is itself Shift+Alt, which the gate now passes through.
         if (commitAsciiPunctuation(event)) return true
+        if (passThroughToApp(event)) return false
         val keyVal = KeyValue.fromKeyEvent(event)
         if (keyVal.value != RimeKeyMapping.RimeKey_VoidSymbol) {
             val modifiers = mergeLatchedModifiers(event, KeyModifiers.fromKeyEvent(event))
@@ -914,7 +920,42 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
      * A composition still in flight keeps priority, so a focus change mid-word does not
      * strand the preedit.
      */
-    private fun passThroughToApp(): Boolean = !hasFocusedField && !isComposing
+    /**
+     * Key codes whose ACTION_DOWN went to the app, so their ACTION_UP has to follow.
+     *
+     * A key's press and release must land in the same place. The modifier keys are where
+     * that bites: `Alt` down arrives with `META_ALT_ON` already set and passes through,
+     * but its up arrives with `metaState` back to 0 and would be judged again -- this
+     * time as ours. The app would then be left believing Alt is still held, and every
+     * later key reads as `Alt+<key>`: digits stop coming out, candidates stop committing.
+     */
+    private val passedThroughKeys = mutableSetOf<Int>()
+
+    private fun passThroughToApp(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_UP) {
+            if (passedThroughKeys.remove(event.keyCode)) return true
+        }
+        val decision = decidePassThrough(event)
+        if (decision && event.action == KeyEvent.ACTION_DOWN) {
+            passedThroughKeys += event.keyCode
+        }
+        return decision
+    }
+
+    private fun decidePassThrough(event: KeyEvent): Boolean {
+        if (isComposing) return false
+        if (!hasFocusedField) return true
+        // The device's own key map has already turned Alt+W into '1' and Alt+P into '@'
+        // (/system/usr/keychars/TitanKey.kcm). Handing that to rime and synthesizing a
+        // replacement re-applies the modifier, and a terminal reads Alt+1 as a meta
+        // sequence rather than a digit. A key that arrives carrying its own modifier is
+        // the app's business.
+        //
+        // The on-screen Ctrl is unaffected: its latch never appears in `metaState`, so a
+        // bare letter pressed under it still takes the rime path and has its Ctrl
+        // synthesized on the way back.
+        return event.metaState and NON_SHIFT_MODIFIERS != 0
+    }
 
     /**
      * Whether rime currently holds an unconfirmed composition.
