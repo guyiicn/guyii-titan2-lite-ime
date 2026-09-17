@@ -488,3 +488,10 @@ app/src/main/jni/boost/
 # minutes rebuilding dictionaries. They must be committed. See DESIGN.md.
 !app/src/main/assets/shared/build/
 !app/src/main/assets/shared/build/**
+
+# librime 自带的 .gitignore 用 `deps/*/*` 排除它那层依赖（上游那里是子模块）。
+# 本项目把原生依赖随仓库分发，那些文件必须在，否则 clone 下来 CMake 找不到
+# glog / marisa / leveldb / yaml-cpp 等 target，构建在配置阶段就失败。
+!app/src/main/jni/librime/deps/**
+!app/src/main/jni/librime/include/**
+!app/src/main/jni/librime/data/**
