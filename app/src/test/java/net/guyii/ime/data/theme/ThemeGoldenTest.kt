@@ -24,6 +24,8 @@ import io.kotest.matchers.shouldNotBe
  * - trime.yaml: two `__include` entries (librime DSL), expanded by [ThemeDslExpander] before
  *   decoding: `letter` inherits /preset_keyboards/default, `scj6` is a copy of cangjie5.
  */
+private val PLAIN_VI_KEYS = setOf("Escape", "BackSpace", "guyii_back_row", "guyii_page_pc")
+
 class ThemeGoldenTest :
     BehaviorSpec({
         Given("the built-in tongwenfeng.trime.yaml") {
@@ -114,14 +116,14 @@ class ThemeGoldenTest :
 
                 Then("color schemes and preset keys are decoded") {
                     theme.colorSchemes.size shouldBe 37
-                    theme.presetKeys.size shouldBe 119
+                    theme.presetKeys.size shouldBe 120
                     val brightnessDown = theme.presetKeys.getValue("BRIGHTNESS_DOWN")
                     brightnessDown.label shouldBe "亮度-"
                     brightnessDown.send shouldBe "BRIGHTNESS_DOWN"
                 }
 
-                Then("all 23 plain keyboards are decoded with their keys") {
-                    theme.presetKeyboards.size shouldBe 23
+                Then("all 24 plain keyboards are decoded with their keys") {
+                    theme.presetKeyboards.size shouldBe 24
                     theme.presetKeyboards shouldContainKey "default"
                     theme.presetKeyboards shouldContainKey "qwerty0"
                     theme.presetKeyboards shouldContainKey "cangjie5"
@@ -134,6 +136,27 @@ class ThemeGoldenTest :
                     theme.presetKeyboards["guyii_sym1"]!!.keys.size shouldBe 35
                     theme.presetKeyboards shouldContainKey "guyii_num"
                     theme.presetKeyboards shouldContainKey "guyii_ascii"
+
+                    // The vi page: every key commits or sends, none is a plain character
+                    // key, because a plain one would feed rime and `i` would start a
+                    // pinyin instead of entering insert mode.
+                    val vi = theme.presetKeyboards.getValue("guyii_vi")
+                    vi.keys.size shouldBe 35
+                    vi.lock shouldBe true
+                    vi.keys.forEach { key ->
+                        val click = key.behaviors[KeyBehavior.CLICK]
+                        withClue("a vi key feeds rime: $click") {
+                            when (click) {
+                                is KeyActionToken.Inline ->
+                                    (click.token.commit != null || click.token.text != null) shouldBe true
+                                // The only plain tokens allowed are the ones that are not
+                                // characters at all: Escape, BackSpace and the page keys.
+                                is KeyActionToken.Plain ->
+                                    (click.token in PLAIN_VI_KEYS) shouldBe true
+                                null -> error("vi key with no click")
+                            }
+                        }
+                    }
 
                     // The escape hatch for a broken hardware keyboard: a full soft
                     // keyboard, locked so it survives a focus change.
@@ -190,7 +213,10 @@ class ThemeGoldenTest :
                             .filter { it.isNotEmpty() }
                     }
                     val guyiiKeyboards =
-                        listOf("rime_ice", "guyii_sym1", "guyii_full", "guyii_ascii", "guyii_num")
+                        listOf(
+                            "rime_ice", "guyii_sym1", "guyii_vi",
+                            "guyii_full", "guyii_ascii", "guyii_num",
+                        )
 
                     // Nothing in the guyii set may lead to a keyboard outside it; ".default"
                     // is allowed because it re-matches against the current schema.

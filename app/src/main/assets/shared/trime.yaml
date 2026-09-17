@@ -893,6 +893,7 @@ preset_keys:
   guyii_page_full: {label: '▸', send: Eisu_toggle, select: guyii_full}
   guyii_back_row: {label: '功能行', send: Eisu_toggle, select: rime_ice}
   guyii_open_full: {label: '全键盘', send: Eisu_toggle, select: guyii_full}
+  guyii_page_vi: {label: '▸', send: Eisu_toggle, select: guyii_vi}
   guyii_cn_en: {toggle: ascii_mode, send: SWITCH_CHARSET, states: [ 中, 英 ]}
   guyii_schema: {label: 方案, send: F4}
   guyii_http: {label: 'http://', commit: 'http://'}
@@ -1093,7 +1094,63 @@ preset_keyboards:
     - {click: guyii_https, width: 25}
     - {click: BackSpace, width: 16}
     - {click: Keyboard_letter, width: 16}
-    - {click: guyii_page_full, width: 18}
+    - {click: guyii_page_vi, long_click: guyii_open_full, width: 18}
+
+  guyii_vi:
+    # vi 的组合键页。
+    #
+    # 每个键都走 commit: 或 text:，没有一个是普通字符键——普通字符键会喂给 rime，
+    # 中文模式下按 i 就成了拼音的开头，而不是进插入模式。commit: 那条路
+    # （CommonKeyboardActionListener.onAction 的第一个分支）直接上屏，完全绕开 rime。
+    #
+    # 选键的取舍：单个字母（h j k l）字母键盘上本来就有，放进来是浪费格子。这一页只放
+    # 三类——多键序列（dd ciw gg）、Ctrl 组合（C-u C-d C-r）、手机上难打的符号
+    # （$ ^ % : /）。i a o v V u x w b p P 留着是因为进出模式太高频，值一个格子。
+    name: guyii vi 页
+    lock: true #常驻功能行，切换程序时记忆
+    keyboard_height: 190
+    width: 10
+    height: 44
+    keys:
+    # 第一行：进出模式、撤销重做
+    - {click: Escape}
+    - {click: {commit: 'i', label: 'i'}}
+    - {click: {commit: 'a', label: 'a'}}
+    - {click: {commit: 'o', label: 'o'}}
+    - {click: {commit: 'v', label: 'v'}}
+    - {click: {commit: 'V', label: 'V'}}
+    - {click: {commit: 'u', label: 'u'}}
+    - {click: {text: '{Control+r}', label: 'C-r'}}
+    - {click: {commit: '.', label: '.'}}
+    - {click: {commit: ':', label: ':'}}
+    # 第二行：移动与翻页
+    - {click: {commit: '0', label: '0'}}
+    - {click: {commit: '^', label: '^'}}
+    - {click: {commit: '$', label: '$'}}
+    - {click: {commit: 'w', label: 'w'}}
+    - {click: {commit: 'b', label: 'b'}}
+    - {click: {commit: 'gg', label: 'gg'}}
+    - {click: {commit: 'G', label: 'G'}}
+    - {click: {text: '{Control+u}', label: 'C-u'}}
+    - {click: {text: '{Control+d}', label: 'C-d'}}
+    - {click: {commit: '%', label: '%'}}
+    # 第三行：删改与复制粘贴
+    - {click: {commit: 'x', label: 'x'}}
+    - {click: {commit: 'dd', label: 'dd'}}
+    - {click: {commit: 'dw', label: 'dw'}}
+    - {click: {commit: 'ciw', label: 'ciw'}}
+    - {click: {commit: 'yy', label: 'yy'}}
+    - {click: {commit: 'p', label: 'p'}}
+    - {click: {commit: 'P', label: 'P'}}
+    - {click: {commit: '>>', label: '>>'}}
+    - {click: {commit: '<<', label: '<<'}}
+    - {click: {commit: '/', label: '/'}}
+    # 第四行：存盘、退格、退路
+    - {click: {commit: ":w\n", label: ':w⏎'}, width: 25}
+    - {click: {commit: ":wq\n", label: ':wq⏎'}, width: 25}
+    - {click: BackSpace, width: 16}
+    - {click: guyii_back_row, width: 16}
+    - {click: guyii_page_pc, long_click: guyii_open_full, width: 18}
 
   guyii_full:
     # 实体键盘万一损坏时的退路：一整块可用的软键盘。
