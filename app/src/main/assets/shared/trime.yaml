@@ -1034,17 +1034,18 @@ preset_keyboards:
     # 这个分支没有独立的「功能行」页——机器没有实体键盘，完整键盘就是默认，
     # Esc/Tab/Ctrl/方向键 不再是「补实体键盘的缺」，而是和符号一样属于
     # 「字母键盘之外」的东西，所以合进同一屏。少一页，也少一次翻页。
-    name: guyii符号与功能页
+    name: guyii符号与终端页
     lock: true
     keyboard_height: 195
     width: 10
     height: 44
     keys:
-    # 第一行：斜杠、英文标点、连接符
+    # 第一行：斜杠、英文标点、连接符。
+    # 这里不放 . 和 ,——它们在字母键盘底排一按就有；! 和 ? 别处没有，占这两格。
     - {click: '/'}
     - {click: '\'}
-    - {click: '.'}
-    - {click: ','}
+    - {click: '!'}
+    - {click: '?'}
     - {click: ':'}
     - {click: ';'}
     - {click: '-'}
@@ -1062,17 +1063,20 @@ preset_keyboards:
     - {click: '>'}
     - {click: "'"}
     - {click: '"'}
-    # 第三行：运算与其余键盘打不出的符号
-    - {click: '='}
-    - {click: '+'}
-    - {click: '~'}
-    - {click: '|'}
-    - {click: '$'}
-    - {click: '%'}
-    - {click: '^'}
-    - {click: '&'}
-    - {click: '`'}
-    - {click: '*'}
+    # 第三行：shell 里最高频的 Ctrl 组合，一按到位。
+    # 原来这里是 = + ~ | $ % ^ & ` * ——那十个在主键盘上全都有长按（数字行和
+    # qwerty 行），而 Ctrl 组合原本要「翻到这一页 → 点 Ctrl 锁定 → 按字母」三步，
+    # 是命令行里最费事的动作。C-a/C-e 同时补回了刚从第三行让位的「行首/行尾」。
+    - {click: {text: '{Control+c}', label: 'C-c'}}
+    - {click: {text: '{Control+d}', label: 'C-d'}}
+    - {click: {text: '{Control+z}', label: 'C-z'}}
+    - {click: {text: '{Control+l}', label: 'C-l'}}
+    - {click: {text: '{Control+r}', label: 'C-r'}}
+    - {click: {text: '{Control+u}', label: 'C-u'}}
+    - {click: {text: '{Control+k}', label: 'C-k'}}
+    - {click: {text: '{Control+w}', label: 'C-w'}}
+    - {click: {text: '{Control+a}', label: 'C-a'}}
+    - {click: {text: '{Control+e}', label: 'C-e'}}
     # 第四行：原功能行——终端要用而字母键盘上没有的键
     - {click: Escape}
     - {click: Tab}
@@ -1081,7 +1085,7 @@ preset_keyboards:
     - {click: Right}
     - {click: Up}
     - {click: Down}
-    - {click: guyii_copy}
+    - {click: guyii_copy, long_click: cut}
     - {click: guyii_paste}
     - {click: guyii_cn_en, long_click: guyii_schema}
     # 第五行：整串上屏 + 退格 + 回字母 + 翻到 vi 页
@@ -1182,11 +1186,16 @@ preset_keyboards:
       - {click: 'i', long_click: ']'}
       - {click: 'o', long_click: '{'}
       - {click: 'p', long_click: '}'}
-      - {click: 'a', long_click: select_all}
-      - {click: 's', long_click: Home}
-      - {click: 'd', long_click: End}
-      - {click: 'f', long_click: Page_Up}
-      - {click: 'g', long_click: Page_Down}
+      # 第三行的长按是这个分支留给 shell 的。Esc 和 Tab 普通输入法根本没有，而在
+      # 命令行里缺一个都干不了活；方向键保持在 hjkl（vim 的位置）；另外三个是路径
+      # 片段——实体键盘给不了你一个「../」键，这是屏幕键盘能赢的地方。
+      # 原来的 全选/行首/行尾/上页/下页 让位：shell 里 C-a C-e 更顺手，手机上那五个
+      # 长按几乎用不到。
+      - {click: 'a', long_click: Escape}
+      - {click: 's', long_click: Tab}
+      - {click: 'd', long_click: {commit: '../', label: '../'}}
+      - {click: 'f', long_click: {commit: '~/', label: '~/'}}
+      - {click: 'g', long_click: {commit: '&&', label: '&&'}}
       - {click: 'h', long_click: Left}
       - {click: 'j', long_click: Down}
       - {click: 'k', long_click: Up}
@@ -1194,22 +1203,26 @@ preset_keyboards:
       - {click: ';', long_click: ':'}
       # 第四行：Shift 和退格挪到两端。原来它们挤在底排中间偏右，那是给 Titan 方屏
       # 配的；手机上这两个键在字母行两端是几十年验证过的位置，拇指自然落点。
+      # 第四行的长按照搬 fcitx5-android 的分配（TextKeyboard.kt 第三行）：
+      # 它用 26 个字母的长按系统性地装下全部标点，一个不漏。原来这里是
+      # 剪切/复制/粘贴/插入/删除——复制粘贴符号页上有，剪切挪到那边「复制」的长按，
+      # Delete 挪到退格的长按，Insert 手机上用不着。
       - {click: Shift_L, width: 15}
       - {click: 'z', long_click: '`'}
-      - {click: 'x', long_click: cut}
-      - {click: 'c', long_click: copy}
-      - {click: 'v', long_click: paste}
-      - {click: 'b', long_click: '~'}
-      - {click: 'n', long_click: Insert}
-      - {click: 'm', long_click: Delete}
-      - {click: BackSpace, width: 15}
+      - {click: 'x', long_click: "'"}
+      - {click: 'c', long_click: '"'}
+      - {click: 'v', long_click: '?'}
+      - {click: 'b', long_click: '!'}
+      - {click: 'n', long_click: '~'}
+      - {click: 'm', long_click: '/'}
+      - {click: BackSpace, long_click: Delete, width: 15}
       # 第五行：没有「功能行」键了——它已经并进第二屏。省下的宽度全给空格（37%）。
       # 逗号句号从第四行挪下来，长按留住 ; 和 /（写路径时 / 很常用）。
       - {click: Keyboard_symbols, width: 13}
       - {click: Mode_switch, long_click: Menu, width: 13}
-      - {click: ',', long_click: ';', width: 11}
+      - {click: ',', long_click: '<', width: 11}
       - {click: space, width: 37}
-      - {click: '.', long_click: '/', width: 11}
+      - {click: '.', long_click: '>', width: 11}
       - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
 
   default:
