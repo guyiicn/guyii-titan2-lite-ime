@@ -229,10 +229,12 @@ class KeyboardWindow(di: DI) :
      * @return true when the keyboard should stay open.
      */
     fun leaveFullKeyboard(): Boolean {
-        if (!fullKeyboardMode) return false
-        fullKeyboardMode = false
-        switchKeyboard(".default")
-        return true
+        // Nothing to leave: on this branch the full keyboard *is* the default, not an
+        // escape hatch, so the hide button hides and that is all. Keeping the two-step
+        // here would wedge it: clearing the flag switches to ".default", smartMatchKeyboard
+        // hands back the full keyboard, switchKeyboard sets the flag again, and every press
+        // reports "handled" while nothing ever hides.
+        return false
     }
 
     private fun rimeSchemaKeyboard(): String = rime.run { statusCached }.schemaId

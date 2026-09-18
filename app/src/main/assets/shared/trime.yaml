@@ -1161,6 +1161,9 @@ preset_keyboards:
     name: guyii完整键盘
     lock: true
     ascii_mode: 0
+    # 整个输入区（工具条 + 候选行 + 键盘）要压在屏高的 1/3 以内。主题全局是 250dp，
+    # 那是给 Titan 的方屏配的，在 1972px 的外屏上连同上面两条会到 40%。
+    keyboard_height: 195
     width: 10
     height: 44
     keys:
@@ -1204,13 +1207,17 @@ preset_keyboards:
       - {click: ',', long_click: '<'}
       - {click: '.', long_click: '>'}
       - {click: '/', long_click: '?'}
-      - {click: Shift_L}
-      - {click: Keyboard_symbols}
-      - {click: Mode_switch, long_click: Menu}
-      - {click: space, width: 25}
-      - {click: guyii_back_row, width: 15}
-      - {click: BackSpace, width: 15}
-      - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
+      # 底排按手机上的实际按压频率配宽度，不是按重要性平均分：
+      # 空格最宽（30%，原来只有 25%，那是给方屏配的）；退格加宽到 14%——它是按得
+      # 最多的键之一，原来和「功能行」一样是 15% 说不过去；代价从「功能行」（一个
+      # 偶尔进的页面入口，10% 够了）和 Enter（在角上，本来就好按）身上出。
+      - {click: Shift_L, width: 11}
+      - {click: Keyboard_symbols, width: 11}
+      - {click: Mode_switch, long_click: Menu, width: 11}
+      - {click: space, width: 30}
+      - {click: guyii_back_row, width: 10}
+      - {click: BackSpace, width: 14}
+      - {click: Return, composing: Return1, long_click: CommitComment, width: 13}
 
   default:
     name: 默认40键
