@@ -888,10 +888,10 @@ preset_keys:
   guyii_copy: {label: 复制, send: Control+c}
   guyii_paste: {label: 粘贴, send: Control+v}
   Control_L: {label: Ctrl, send: Control_L}
-  guyii_page_pc: {label: '▸', send: Eisu_toggle, select: rime_ice}
+  guyii_page_pc: {label: '▸', send: Eisu_toggle, select: guyii_full}
   guyii_page_sym1: {label: '▸', send: Eisu_toggle, select: guyii_sym1}
   guyii_page_full: {label: '▸', send: Eisu_toggle, select: guyii_full}
-  guyii_back_row: {label: '功能行', send: Eisu_toggle, select: rime_ice}
+  guyii_back_row: {label: 'ABC', send: Eisu_toggle, select: guyii_full}
   guyii_open_full: {label: '全键盘', send: Eisu_toggle, select: guyii_full}
   guyii_page_vi: {label: '▸', send: Eisu_toggle, select: guyii_vi}
   guyii_cn_en: {toggle: ascii_mode, send: SWITCH_CHARSET, states: [ 中, 英 ]}
@@ -939,7 +939,7 @@ preset_keys:
   Keyboard_mini: {label: 迷你, send: Eisu_toggle, select: mini}
   # 原本 select: default —— 上游 40 键键盘，lock 为真且没有任何返回功能行的键，
   # 在 Termux 这类焦点不变的应用里按下去就出不来了。改为直接回功能行。
-  Keyboard_letter: {label: 功能行, send: Eisu_toggle, select: rime_ice}
+  Keyboard_letter: {label: ABC, send: Eisu_toggle, select: guyii_full}
   Keyboard_default: {label: 返回, send: Eisu_toggle, select: .default}
   Keyboard_switch: {label: 键盘, send: Eisu_toggle, select: .next}
   liquid_keyboard_switch: { label: 更多, send: FUNCTION, command: liquid_keyboard, option: "更多" }
@@ -1028,31 +1028,15 @@ preset_keyboards:
     - {click: guyii_page_sym1}
     - {click: Keyboard_letter}
 
-  rime_ice:
-    name: guyii功能键
-    lock: true #常驻功能行，切换程序时记忆
-    keyboard_height: 56
-    width: 9
-    height: 44
-    keys:
-    # 常驻中英状态指示：label 随 ascii_mode 变（中／英），点击即切换。
-    # 长按进方案选单（等同 F4）。
-    - {click: guyii_cn_en, long_click: guyii_schema}
-    - {click: Escape}
-    - {click: Tab}
-    - {click: Control_L}
-    - {click: Left}
-    - {click: Right}
-    - {click: Up}
-    - {click: Down}
-    - {click: guyii_copy}
-    - {click: guyii_paste}
-    - {click: guyii_page_sym1, long_click: guyii_open_full}
-
   guyii_sym1:
-    name: guyii符号页
-    lock: true #常驻功能行，切换程序时记忆
-    keyboard_height: 190
+    # 第二屏：字母键盘上没有的一切。
+    #
+    # 这个分支没有独立的「功能行」页——机器没有实体键盘，完整键盘就是默认，
+    # Esc/Tab/Ctrl/方向键 不再是「补实体键盘的缺」，而是和符号一样属于
+    # 「字母键盘之外」的东西，所以合进同一屏。少一页，也少一次翻页。
+    name: guyii符号与功能页
+    lock: true
+    keyboard_height: 195
     width: 10
     height: 44
     keys:
@@ -1089,12 +1073,23 @@ preset_keyboards:
     - {click: '&'}
     - {click: '`'}
     - {click: '*'}
-    # 第四行：整串上屏 + 退格 + 退路
+    # 第四行：原功能行——终端要用而字母键盘上没有的键
+    - {click: Escape}
+    - {click: Tab}
+    - {click: Control_L}
+    - {click: Left}
+    - {click: Right}
+    - {click: Up}
+    - {click: Down}
+    - {click: guyii_copy}
+    - {click: guyii_paste}
+    - {click: guyii_cn_en, long_click: guyii_schema}
+    # 第五行：整串上屏 + 退格 + 回字母 + 翻到 vi 页
     - {click: guyii_http, width: 25}
     - {click: guyii_https, width: 25}
     - {click: BackSpace, width: 16}
     - {click: Keyboard_letter, width: 16}
-    - {click: guyii_page_vi, long_click: guyii_open_full, width: 18}
+    - {click: guyii_page_vi, width: 18}
 
   guyii_vi:
     # vi 的组合键页。
@@ -1107,8 +1102,8 @@ preset_keyboards:
     # 三类——多键序列（dd ciw gg）、Ctrl 组合（C-u C-d C-r）、手机上难打的符号
     # （$ ^ % : /）。i a o v V u x w b p P 留着是因为进出模式太高频，值一个格子。
     name: guyii vi 页
-    lock: true #常驻功能行，切换程序时记忆
-    keyboard_height: 190
+    lock: true
+    keyboard_height: 195
     width: 10
     height: 44
     keys:
@@ -1150,7 +1145,7 @@ preset_keyboards:
     - {click: {commit: ":wq\n", label: ':wq⏎'}, width: 25}
     - {click: BackSpace, width: 16}
     - {click: guyii_back_row, width: 16}
-    - {click: guyii_page_pc, long_click: guyii_open_full, width: 18}
+    - {click: guyii_page_pc, width: 18}
 
   guyii_full:
     # 实体键盘万一损坏时的退路：一整块可用的软键盘。
@@ -1197,6 +1192,9 @@ preset_keyboards:
       - {click: 'k', long_click: Up}
       - {click: 'l', long_click: Right}
       - {click: ';', long_click: ':'}
+      # 第四行：Shift 和退格挪到两端。原来它们挤在底排中间偏右，那是给 Titan 方屏
+      # 配的；手机上这两个键在字母行两端是几十年验证过的位置，拇指自然落点。
+      - {click: Shift_L, width: 15}
       - {click: 'z', long_click: '`'}
       - {click: 'x', long_click: cut}
       - {click: 'c', long_click: copy}
@@ -1204,20 +1202,15 @@ preset_keyboards:
       - {click: 'b', long_click: '~'}
       - {click: 'n', long_click: Insert}
       - {click: 'm', long_click: Delete}
-      - {click: ',', long_click: '<'}
-      - {click: '.', long_click: '>'}
-      - {click: '/', long_click: '?'}
-      # 底排按手机上的实际按压频率配宽度，不是按重要性平均分：
-      # 空格最宽（30%，原来只有 25%，那是给方屏配的）；退格加宽到 14%——它是按得
-      # 最多的键之一，原来和「功能行」一样是 15% 说不过去；代价从「功能行」（一个
-      # 偶尔进的页面入口，10% 够了）和 Enter（在角上，本来就好按）身上出。
-      - {click: Shift_L, width: 11}
-      - {click: Keyboard_symbols, width: 11}
-      - {click: Mode_switch, long_click: Menu, width: 11}
-      - {click: space, width: 30}
-      - {click: guyii_back_row, width: 10}
-      - {click: BackSpace, width: 14}
-      - {click: Return, composing: Return1, long_click: CommitComment, width: 13}
+      - {click: BackSpace, width: 15}
+      # 第五行：没有「功能行」键了——它已经并进第二屏。省下的宽度全给空格（37%）。
+      # 逗号句号从第四行挪下来，长按留住 ; 和 /（写路径时 / 很常用）。
+      - {click: Keyboard_symbols, width: 13}
+      - {click: Mode_switch, long_click: Menu, width: 13}
+      - {click: ',', long_click: ';', width: 11}
+      - {click: space, width: 37}
+      - {click: '.', long_click: '/', width: 11}
+      - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
 
   default:
     name: 默认40键

@@ -12,6 +12,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.assertions.withClue
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.maps.shouldContainKey
+import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
@@ -122,18 +123,19 @@ class ThemeGoldenTest :
                     brightnessDown.send shouldBe "BRIGHTNESS_DOWN"
                 }
 
-                Then("all 24 plain keyboards are decoded with their keys") {
-                    theme.presetKeyboards.size shouldBe 24
+                Then("all 23 plain keyboards are decoded with their keys") {
+                    theme.presetKeyboards.size shouldBe 23
                     theme.presetKeyboards shouldContainKey "default"
                     theme.presetKeyboards shouldContainKey "qwerty0"
                     theme.presetKeyboards shouldContainKey "cangjie5"
                     theme.presetKeyboards shouldContainKey "array30"
 
-                    // guyii additions: the function row (named after the schema so
-                    // smartMatchKeyboard picks it up) and its symbol pages.
-                    theme.presetKeyboards shouldContainKey "rime_ice"
+                    // guyii additions. No `rime_ice` here: this branch has no standalone
+                    // function row -- with no physical keyboard the full keyboard is the
+                    // default, and Esc/Tab/Ctrl/arrows live on the symbol page instead.
+                    theme.presetKeyboards shouldNotContainKey "rime_ice"
                     theme.presetKeyboards shouldContainKey "guyii_sym1"
-                    theme.presetKeyboards["guyii_sym1"]!!.keys.size shouldBe 35
+                    theme.presetKeyboards["guyii_sym1"]!!.keys.size shouldBe 45
                     theme.presetKeyboards shouldContainKey "guyii_num"
                     theme.presetKeyboards shouldContainKey "guyii_ascii"
 
@@ -161,7 +163,7 @@ class ThemeGoldenTest :
                     // The escape hatch for a broken hardware keyboard: a full soft
                     // keyboard, locked so it survives a focus change.
                     val full = theme.presetKeyboards.getValue("guyii_full")
-                    full.keys.size shouldBe 47
+                    full.keys.size shouldBe 45
                     full.lock shouldBe true
 
                     val default = theme.presetKeyboards.getValue("default")
@@ -199,7 +201,7 @@ class ThemeGoldenTest :
                         theme.presetKeyboards.getValue("cangjie5")
                 }
 
-                Then("every guyii keyboard has a way back to the function row") {
+                Then("every guyii keyboard has a way back to the letter keyboard") {
                     // A keyboard reachable from the function row but with no path back strands
                     // the user: upstream's `default` is `lock: true`, so in an app that never
                     // changes focus (a terminal) onStartInput never runs to re-match it.
@@ -214,8 +216,8 @@ class ThemeGoldenTest :
                     }
                     val guyiiKeyboards =
                         listOf(
-                            "rime_ice", "guyii_sym1", "guyii_vi",
-                            "guyii_full", "guyii_ascii", "guyii_num",
+                            "guyii_full", "guyii_sym1", "guyii_vi",
+                            "guyii_ascii", "guyii_num",
                         )
 
                     // Nothing in the guyii set may lead to a keyboard outside it; ".default"
@@ -229,15 +231,15 @@ class ThemeGoldenTest :
                     }
 
                     // And every one of them reaches the function row without a focus change.
-                    val reachesFunctionRow = { id: String ->
+                    val reachesLetters = { id: String ->
                         generateSequence(setOf(id)) { seen ->
                             (seen + seen.flatMap(selectOf).filter { it in guyiiKeyboards })
                                 .takeIf { it != seen }
                         }.last()
                     }
                     guyiiKeyboards.forEach { id ->
-                        withClue("$id cannot reach rime_ice") {
-                            reachesFunctionRow(id) shouldContain "rime_ice"
+                        withClue("$id cannot reach guyii_full") {
+                            reachesLetters(id) shouldContain "guyii_full"
                         }
                     }
                 }
