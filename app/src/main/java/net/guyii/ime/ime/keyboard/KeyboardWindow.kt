@@ -238,7 +238,11 @@ class KeyboardWindow(di: DI) :
     private fun rimeSchemaKeyboard(): String = rime.run { statusCached }.schemaId
 
     private fun smartMatchKeyboard(): String {
-        if (fullKeyboardMode && presetKeyboardIds.contains(FULL_KEYBOARD)) return FULL_KEYBOARD
+        // This branch targets phones with no physical keyboard, so the default is the full
+        // on-screen keyboard. On the Titan the default is the one-row function bar named
+        // after the schema, because the letters come off the physical keys; here that bar
+        // would leave nothing to type with.
+        if (presetKeyboardIds.contains(FULL_KEYBOARD)) return FULL_KEYBOARD
         // 主题的布局中包含方案id，直接采用
         val currentSchema = rime.run { statusCached }.schemaId
         if (presetKeyboardIds.contains(currentSchema)) {
@@ -344,7 +348,10 @@ class KeyboardWindow(di: DI) :
                                 InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
                                 InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
                                 InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
-                                -> "guyii_ascii"
+                                // Not the one-row ascii bar: it carries punctuation only, and
+                                // with no physical keyboard there would be no way to type the
+                                // password itself. The full keyboard plus forced ascii mode.
+                                -> FULL_KEYBOARD
                                 // ".default" (not "") so the keyboard is re-matched against the
                                 // current schema on every focus. Passing "" falls back to
                                 // lastLockKeyboardId, which sticks to whatever was attached in
@@ -357,9 +364,23 @@ class KeyboardWindow(di: DI) :
                     }
                 }
             }
+        // Which fields want ascii regardless of which keyboard serves them. Keyed off the
+        // editor rather than the keyboard id, because the password field now shares the
+        // full keyboard with ordinary text.
+        val asciiField =
+            targetKeyboard == "guyii_num" ||
+                when (info.inputType and InputType.TYPE_MASK_VARIATION) {
+                    InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                    InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                    InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                    InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                    InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+                    -> info.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_TEXT
+                    else -> false
+                }
         switchKeyboard(targetKeyboard)
         val isAsciiMode = rime.run { statusCached }.isAsciiMode
-        if (targetKeyboard == "guyii_ascii" || targetKeyboard == "guyii_num") {
+        if (asciiField) {
             if (tempAsciiMode == null) {
                 tempAsciiMode = isAsciiMode
             }
