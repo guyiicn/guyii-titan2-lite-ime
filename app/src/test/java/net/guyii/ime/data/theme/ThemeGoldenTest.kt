@@ -163,7 +163,7 @@ class ThemeGoldenTest :
                     // The escape hatch for a broken hardware keyboard: a full soft
                     // keyboard, locked so it survives a focus change.
                     val full = theme.presetKeyboards.getValue("guyii_full")
-                    full.keys.size shouldBe 45
+                    full.keys.size shouldBe 46
                     full.lock shouldBe true
 
                     val default = theme.presetKeyboards.getValue("default")

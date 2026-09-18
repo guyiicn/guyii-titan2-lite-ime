@@ -1078,16 +1078,20 @@ preset_keyboards:
     - {click: {text: '{Control+a}', label: 'C-a'}}
     - {click: {text: '{Control+e}', label: 'C-e'}}
     # 第四行：原功能行——终端要用而字母键盘上没有的键
+    # Ctrl 不在这里：修饰键锁定是每块键盘各自的状态（handleDefaultKeyAction 取的是
+    # currentKeyboard.modifier），在这一页锁上，翻回字母键盘就没了。它挪到了主键盘
+    # 底排，和字母同一块。中/英 也拿掉——主键盘底排本来就有。空出的两格还给 | 和 $，
+    # 这两个是 shell 高频，之前被挤到长按上了。
     - {click: Escape}
     - {click: Tab}
-    - {click: Control_L}
+    - {click: '|'}
+    - {click: '$'}
     - {click: Left}
     - {click: Right}
     - {click: Up}
     - {click: Down}
     - {click: guyii_copy, long_click: cut}
     - {click: guyii_paste}
-    - {click: guyii_cn_en, long_click: guyii_schema}
     # 第五行：整串上屏 + 退格 + 回字母 + 翻到 vi 页
     - {click: guyii_http, width: 25}
     - {click: guyii_https, width: 25}
@@ -1218,12 +1222,13 @@ preset_keyboards:
       - {click: BackSpace, long_click: Delete, width: 15}
       # 第五行：没有「功能行」键了——它已经并进第二屏。省下的宽度全给空格（37%）。
       # 逗号句号从第四行挪下来，长按留住 ; 和 /（写路径时 / 很常用）。
-      - {click: Keyboard_symbols, width: 13}
-      - {click: Mode_switch, long_click: Menu, width: 13}
-      - {click: ',', long_click: '<', width: 11}
-      - {click: space, width: 37}
-      - {click: '.', long_click: '>', width: 11}
-      - {click: Return, composing: Return1, long_click: CommitComment, width: 15}
+      - {click: Keyboard_symbols, width: 12}
+      - {click: Control_L, width: 12}
+      - {click: Mode_switch, long_click: Menu, width: 12}
+      - {click: ',', long_click: '<', width: 10}
+      - {click: space, width: 32}
+      - {click: '.', long_click: '>', width: 10}
+      - {click: Return, composing: Return1, long_click: CommitComment, width: 12}
 
   default:
     name: 默认40键
