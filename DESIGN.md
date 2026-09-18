@@ -126,8 +126,12 @@ MIT 不可行。应用名/图标/著作权归 guyii，LICENSE 保留，README �
 | `guyii_sym1` | `= \| $ ~ [ ] { } ▸` | 11 |
 | `guyii_sym2` | `` ` \ ; ^ & % ▸ `` | 14 |
 
-- 三页由 `▸`（`select:` 动作）循环
-- `▸` 长按 → `Keyboard_letter`，切回完整字母键盘（无实体键盘时的退路）
+- 由 `▸`（`select:` 动作）循环：功能行 → 四行符号页 → vi 组合键页 → 功能行
+- `▸` 长按 → `guyii_open_full`，直达完整软键盘（实体键盘损坏时的退路）。
+  全键盘不进循环——它是退路，不该占每次翻页都要经过的位置
+- vi 页（`guyii_vi`）每个键都是 `commit:` 或 `text:`，没有普通字符键：普通字符键会
+  喂给 rime，中文模式下按 `i` 会开始拼音组字而不是进插入模式。Ctrl 组合走
+  `text: '{Control+d}'`，依赖 §7c 的修饰键包裹
 - 每个键盘各设 `keyboard_height: 56`；不设会被主题全局 `keyboard_height: 250` 撑满
 - 新增 preset_keys：`Tab`、`Control_L`、`guyii_copy`、`guyii_paste`、三个翻页键
   （复制/粘贴自建而非复用 Trime 的 `copy`/`paste`，否则会显示其自带的繁体标签）

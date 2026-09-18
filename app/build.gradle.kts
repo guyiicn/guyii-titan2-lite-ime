@@ -25,8 +25,8 @@ android {
         applicationId = "net.guyii.ime"
         minSdk = 21
         targetSdk = 36
-        versionCode = 20261102
-        versionName = "3.4.2"
+        versionCode = 20261103
+        versionName = "3.4.3"
 
         multiDexEnabled = true
         buildConfigField("String", "BUILDER", "\"${project.builder}\"")
